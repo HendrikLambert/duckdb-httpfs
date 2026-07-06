@@ -357,3 +357,6 @@ extension_external
 test/sql/pragma/output.json
 tools/pythonpkg/duckdb_build/
 test/test_data
+
+# httpfs CI: captured proxy/server logs (squid, minio trace, http) asserted by scripts/ci/assert-logs.sh
+test/httpfs_logs/
