@@ -1,57 +1,59 @@
+## Running the httpfs integration tests
 
-In order to test these locally, `minio` is used. This requires Docker to be installed.
+The integration tests run the httpfs suite against a Docker stack that mirrors CI
+exactly: MinIO (S3), a Squid proxy, and a Python HTTP server. The same
+`scripts/ci` entrypoints are used locally and in
+[`.github/workflows/IntegrationTests.yml`](../.github/workflows/IntegrationTests.yml),
+so a green run locally means a green run in CI.
 
-### Installing Docker on MacOS
+Requires Docker. On macOS: `brew install docker --cask`, then open
+`/Applications/Docker` once to finish setup.
 
-Install `docker` using `homebrew`.
+### One-time host setup
 
-
-```bash
-brew install docker --cask
-```
-
-Then open `/Applications/Docker`. Note that the first time you open the application you need to go to the `Applications` folder, right-click `Docker` and select `open`.
-
-### Setting Up Docker
-
-In order to finish setting up Docker, you need to open the Docker application, and login to your Docker account. Create a Docker account if you do not have one and finish setting up.
-
-### Running Minio
-
-Run the `install_s3_test_server` script. This requires root. This makes a few changes to your system, specifically to `/etc/hosts` to set up a few redirect interfaces to localhost. This only needs to be run once.
+The host runs the `unittest` binary directly against the containers, so it needs
+`/etc/hosts` aliases pointing the MinIO vhosts at localhost (and the checked-in
+test secrets restricted to 0700, which duckdb requires). Run once:
 
 ```bash
-sudo ./scripts/install_s3_test_server.sh
+sudo ./scripts/ci/setup-hosts.sh
 ```
 
-Then, if this has not been done yet, we need to generate some data:
-
-```
-./scripts/generate_presigned_url.sh
-```
-
-Then run the test server in the back-ground using Docker. Note that Docker must be opened for this to work. On MacOS you can open the docker gui (`/Applications/Docker`) and leave it open to accomplish this.
-
+### Run everything
 
 ```bash
-source ./scripts/run_s3_test_server.sh
+make                              # build the extension (produces build/release/test/unittest)
+./scripts/ci/run-ci-pipeline.sh   # generate data (if missing) -> up -> tests -> assert logs -> teardown
 ```
 
-Now set up the following environment variables using the `set_s3_test_server_variables.sh` script to enable running of the tests.
+The pipeline:
+
+1. `scripts/ci/generate-data.sh` — generates the test data into `test/test_data/`
+   if missing, using the `duckdb/duckdb:1.5.2` container (matching the pinned
+   submodule, so no local duckdb build is needed just for data).
+2. `scripts/ci/up.sh` — brings up `scripts/ci/docker-compose.yml`, waits for MinIO
+   setup, and writes the scraped presigned URLs to `test/httpfs_logs/presigned.env`.
+3. `scripts/ci/run-tests.sh` — runs the unittest suite (curl / httplib / caching
+   variants) against the stack.
+4. `scripts/ci/assert-logs.sh` — checks every request captured by MinIO, the HTTP
+   server, and Squid carried a `duckdb/` User-Agent, and **fails** otherwise.
+
+Captured logs land in `test/httpfs_logs/` (`minio-trace.jsonl`, `http-access.log`,
+`squid-access.log`); both `test/test_data/` and `test/httpfs_logs/` are gitignored.
+
+### Local iteration
 
 ```bash
-# use source so it sets the environment variables in your current environment
-source scripts/set_s3_test_server_variables.sh
+# keep the stack up and narrow the tests while debugging
+KEEP_UP=1 TEST_FILTER='test/sql/copy/s3/*' ./scripts/ci/run-ci-pipeline.sh
+
+# or drive a single step against an already-running stack
+source scripts/ci/set-ci-env.sh
+source test/httpfs_logs/presigned.env
+build/release/test/unittest test/sql/copy/s3/s3_hive_partition.test
 ```
 
-Now you should be able to run the S3 tests using minio, e.g.:
+Regenerate the test data from scratch with `./scripts/ci/generate-data.sh --force`.
 
-```bash
-build/debug/test/unittest test/sql/copy/s3/s3_hive_partition.test
-```
-
-> minio uses port 9000. Clickhouse also uses port 9000. If the tests are not working and you have a running Clickhouse service - try killing it first, e.g. using `killall -9 clickhouse`
-
-#### Test Data
-
-The configuration for minio is stored in `scripts/minio_s3.yml`. Data is stored in `/tmp/minio_test_data`.
+> MinIO uses port 9000. Clickhouse also uses port 9000 — if tests fail and you have
+> a running Clickhouse service, kill it first (`killall -9 clickhouse`).
