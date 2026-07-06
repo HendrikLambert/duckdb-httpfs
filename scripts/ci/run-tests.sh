@@ -17,22 +17,29 @@ fi
 
 STATIC="[httpfs,parquet,core_functions]"
 FILTER="${TEST_FILTER:-test/*}"
-status=0
 
-# Gating run (default client).
-"$UNITTEST" "$FILTER" --skip-error-messages "[]" || status=$?
+# $1 = on-init SQL ("" = default client); rest = optional command prefix.
+run_suite() {
+  local init="$1"; shift
+  local args=("$FILTER" --skip-error-messages "[]")
+  [[ -n "$init" ]] && args+=(--statically-loaded-extensions "$STATIC" --on-init "$init")
+  "$@" "$UNITTEST" "${args[@]}"
+}
 
-# Non-gating variants: exercise each client so the UA assertion covers them;
-# reset MinIO first for clean state + refreshed presigned URLs.
-for init in \
-  "SET httpfs_client_implementation='curl';" \
-  "SET httpfs_client_implementation='httplib';" \
-  "SET httpfs_connection_caching=true;"
-do
+# Non-gating variant; reset MinIO first.
+variant() {
   ./scripts/ci/reset-minio.sh
   # shellcheck source=/dev/null
   source test/httpfs_logs/presigned.env
-  "$UNITTEST" "$FILTER" --skip-error-messages "[]" --statically-loaded-extensions "$STATIC" --on-init "$init" || true
-done
+  run_suite "$@" || true
+}
+
+status=0
+run_suite "" || status=$?
+
+# httplib can't cache connections, so drop the flag to skip those tests.
+variant "SET httpfs_client_implementation='curl';"
+variant "SET httpfs_client_implementation='httplib';" env -u HTTPFS_CONNECTION_CACHING_SUPPORTED
+variant "SET httpfs_connection_caching=true;"
 
 exit $status
