@@ -12,3 +12,5 @@ export TEST_PERSISTENT_SECRETS_AVAILABLE=true
 export S3_ATTACH_DB=s3://test-bucket/presigned/attach.db
 export PYTHON_HTTP_SERVER_URL=http://localhost:8008
 export PYTHON_HTTP_SERVER_DIR=/tmp/python_test_server
+# Gates the connection-caching tests; run-tests.sh drops it for the httplib variant.
+export HTTPFS_CONNECTION_CACHING_SUPPORTED=1

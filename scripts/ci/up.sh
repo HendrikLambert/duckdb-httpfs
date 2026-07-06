@@ -12,6 +12,11 @@ rm -rf "$LOGS" /tmp/python_test_server
 mkdir -p "$LOGS" /tmp/python_test_server
 chmod 777 "$LOGS"
 
+# Pre-create the log files world-writable so the container writers (squid runs as
+# an unprivileged uid) leave them host-readable for assert-logs.sh.
+touch "$LOGS"/squid-access.log "$LOGS"/http-access.log "$LOGS"/minio-trace.jsonl
+chmod 666 "$LOGS"/squid-access.log "$LOGS"/http-access.log "$LOGS"/minio-trace.jsonl
+
 "${COMPOSE[@]}" up -d
 
 echo "waiting for MinIO setup..."
