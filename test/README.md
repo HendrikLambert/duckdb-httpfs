@@ -39,7 +39,9 @@ The pipeline:
    server, and Squid carried a `duckdb/` User-Agent, and **fails** otherwise.
 
 Captured logs land in `test/httpfs_logs/` (`minio-trace.jsonl`, `http-access.log`,
-`squid-access.log`); both `test/test_data/` and `test/httpfs_logs/` are gitignored.
+`squid-access.log`); `scripts/ci/up.sh` resets those log files and
+`presigned.env`, while preserving other runner artifacts in the directory. Both
+`test/test_data/` and `test/httpfs_logs/` are gitignored.
 
 ### Local iteration
 
@@ -54,6 +56,47 @@ build/release/test/unittest test/sql/copy/s3/s3_hive_partition.test
 ```
 
 Regenerate the test data from scratch with `./scripts/ci/generate-data.sh --force`.
+
+### DuckDB DATA_DIR over httpfs
+
+The CI stack can also run generated copies of selected DuckDB core SQLLogic
+tests over httpfs by rewriting `{DATA_DIR}` to either the existing Python HTTP
+server or MinIO:
+
+```bash
+# Prepare generated SQLLogic tests for HTTP + S3.
+scripts/ci/transform-duckdb-data-dir-tests.sh
+
+# Run them with the normal CI pipeline.
+source test/httpfs_logs/duckdb-data-dir-run.env
+./scripts/ci/run-ci-pipeline.sh
+```
+
+The HTTP service mounts `duckdb/data` at `http://localhost:8008/data`. The S3
+path is optional because copying all of `duckdb/data` into MinIO adds setup time;
+set `SEED_DUCKDB_DATA=1` when running S3 `DATA_DIR` tests. In these exploratory
+runs, the generated env file sets `HTTPFS_TEST_VARIANTS=curl` and
+`HTTPFS_IGNORE_TEST_FAILURES=1`, while `scripts/ci/assert-logs.sh` remains the
+hard gate for missing `duckdb/` User-Agent headers.
+
+To only discover matching DuckDB tests, or to customize the transform, use:
+
+```bash
+scripts/ci/transform-duckdb-data-dir-tests.sh --list-only
+
+# HTTP only.
+scripts/ci/transform-duckdb-data-dir-tests.sh --backends http
+
+# Custom discovery pattern, useful for experimenting with TEST_DIR/TEMP_DIR tests.
+scripts/ci/transform-duckdb-data-dir-tests.sh \
+  --backends http \
+  --grep 'DATA_DIR|TEST_DIR|TEMP_DIR|__TEST_DIR__'
+```
+
+The transform supports `http` and `s3`. It discovers files under `duckdb/test`
+by default, rewrites `{DATA_DIR}` into generated SQLLogic files under
+`test/httpfs_logs/generated/<backend>/`, and writes
+`test/httpfs_logs/duckdb-data-dir-run.env` for the normal pipeline.
 
 > MinIO uses port 9000. Clickhouse also uses port 9000 — if tests fail and you have
 > a running Clickhouse service, kill it first (`killall -9 clickhouse`).

@@ -61,4 +61,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: httpfs-ci-logs
-          path: test/httpfs_logs/
+          path: |
+            test/httpfs_logs/
+            !test/httpfs_logs/*.env

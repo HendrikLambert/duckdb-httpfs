@@ -41,6 +41,8 @@ services:
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
     depends_on:
       - minio
+    environment:
+      - SEED_DUCKDB_DATA=${SEED_DUCKDB_DATA:-0}
     volumes:
       - ../../duckdb/data:/duckdb/data:ro
       - ../../test/test_data:/duckdb/test_data:ro
@@ -68,6 +70,10 @@ services:
         /usr/bin/mc rb --force myminio/test-bucket-public
         /usr/bin/mc mb myminio/test-bucket-public
         /usr/bin/mc anonymous set public myminio/test-bucket-public
+
+        if [ \"${SEED_DUCKDB_DATA:-0}\" = \"1\" ]; then
+          /usr/bin/mc mirror /duckdb/data myminio/test-bucket/data
+        fi
 
         /usr/bin/mc cp /duckdb/data/csv/phonenumbers.csv myminio/test-bucket/presigned/phonenumbers.csv
         /usr/bin/mc cp /duckdb/data/parquet-testing/glob/t1.parquet myminio/test-bucket/presigned/t1.parquet
@@ -119,6 +125,7 @@ services:
       - "8008:8008"
     volumes:
       - /tmp/python_test_server:/data
+      - ../../duckdb/data:/data/data:ro
       - ./http_ua_server.py:/srv/http_ua_server.py:ro
       - ../../test/httpfs_logs:/logs
     working_dir: /data
