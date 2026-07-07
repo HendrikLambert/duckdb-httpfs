@@ -13,6 +13,7 @@
 *.class
 # Byte compiled python modules.
 *.pyc
+__pycache__/
 # vim swap files
 .*.sw?
 .sw?

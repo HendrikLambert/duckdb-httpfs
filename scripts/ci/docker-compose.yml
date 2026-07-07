@@ -110,7 +110,7 @@ services:
       "
 
   squid:
-    image: ubuntu/squid:latest
+    image: ubuntu/squid:7.2-26.04_edge
     depends_on:
       - minio
     ports:

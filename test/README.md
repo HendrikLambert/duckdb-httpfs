@@ -35,8 +35,10 @@ The pipeline:
    setup, and writes the scraped presigned URLs to `test/httpfs_logs/presigned.env`.
 3. `scripts/ci/run-tests.sh` — runs the unittest suite (curl / httplib / caching
    variants) against the stack.
-4. `scripts/ci/assert-logs.sh` — checks every request captured by MinIO, the HTTP
-   server, and Squid carried a `duckdb/` User-Agent, and **fails** otherwise.
+4. `scripts/ci/assert-logs.sh` — runs the Python log assertion suite in a stock
+   Python Docker container. The current assertion checks every request captured
+   by MinIO, the HTTP server, and Squid carried a `duckdb/` User-Agent, and
+   **fails** otherwise.
 
 Captured logs land in `test/httpfs_logs/` (`minio-trace.jsonl`, `http-access.log`,
 `squid-access.log`); `scripts/ci/up.sh` resets those log files and
@@ -70,6 +72,9 @@ scripts/ci/transform-duckdb-data-dir-tests.sh
 # Run them with the normal CI pipeline.
 source test/httpfs_logs/duckdb-data-dir-run.env
 ./scripts/ci/run-ci-pipeline.sh
+
+# Clean generated tests and sourced env afterwards.
+source scripts/ci/cleanup-duckdb-data-dir-tests.sh
 ```
 
 The HTTP service mounts `duckdb/data` at `http://localhost:8008/data`. The S3
@@ -96,7 +101,9 @@ scripts/ci/transform-duckdb-data-dir-tests.sh \
 The transform supports `http` and `s3`. It discovers files under `duckdb/test`
 by default, rewrites `{DATA_DIR}` into generated SQLLogic files under
 `test/httpfs_logs/generated/<backend>/`, and writes
-`test/httpfs_logs/duckdb-data-dir-run.env` for the normal pipeline.
+`test/httpfs_logs/duckdb-data-dir-run.env` for the normal pipeline. Source
+`scripts/ci/cleanup-duckdb-data-dir-tests.sh` to remove those generated files and
+unset the run-specific environment variables from the current shell.
 
 > MinIO uses port 9000. Clickhouse also uses port 9000 — if tests fail and you have
 > a running Clickhouse service, kill it first (`killall -9 clickhouse`).

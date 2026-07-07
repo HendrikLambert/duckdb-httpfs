@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Test-only HTTP server that logs every request's full header set as JSONL."""
+import json
 import os
 import sys
 import threading
@@ -12,13 +14,19 @@ _lock = threading.Lock()
 _log = open(LOG_PATH, "a", buffering=1)
 
 
-class UALoggingHandler(SimpleHTTPRequestHandler):
+class HeaderLoggingHandler(SimpleHTTPRequestHandler):
     def log_request(self, code="-", size="-"):
         if isinstance(code, HTTPStatus):
             code = code.value
-        ua = self.headers.get("User-Agent") or "-"
+        headers = {key.lower(): value for key, value in self.headers.items()}
+        entry = {
+            "method": self.command,
+            "path": self.path,
+            "status": code if isinstance(code, int) else None,
+            "headers": headers,
+        }
         with _lock:
-            _log.write(f"{self.command} {self.path} {code} UA:{ua}\n")
+            _log.write(json.dumps(entry) + "\n")
 
     def log_message(self, *args):
         pass
@@ -26,7 +34,7 @@ class UALoggingHandler(SimpleHTTPRequestHandler):
 
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8008
-    with ThreadingHTTPServer(("0.0.0.0", port), UALoggingHandler) as httpd:
+    with ThreadingHTTPServer(("0.0.0.0", port), HeaderLoggingHandler) as httpd:
         httpd.serve_forever()
 
 
