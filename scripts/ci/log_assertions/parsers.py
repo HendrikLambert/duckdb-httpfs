@@ -4,12 +4,12 @@ import urllib.parse
 from collections.abc import Iterable
 from pathlib import Path
 
-from model import Request, normalize_headers
+from model import Request, Response, normalize_headers
 
 
 SQUID_RE = re.compile(
     r"^(?P<timestamp>\S+)\s+(?P<client>\S+)\s+(?P<result>\S+)\s+"
-    r"(?P<method>\S+)\s+(?P<path>\S+)\s+(?P<headers>\S*)$"
+    r"(?P<method>\S+)\s+(?P<path>\S+)\s+(?P<request_headers>\S*)\s+(?P<response_headers>\S*)$"
 )
 
 
@@ -35,7 +35,7 @@ def parse_minio(path: Path) -> Iterable[Request]:
             try:
                 entry = json.loads(raw)
             except json.JSONDecodeError:
-                yield Request(source="minio", line_no=line_no, method="", path=None, status=None, raw=raw)
+                yield Request(source="minio", line_no=line_no, method="", path=None, raw=raw)
                 continue
 
             request = entry.get("request") or {}
@@ -45,8 +45,11 @@ def parse_minio(path: Path) -> Iterable[Request]:
                 line_no=line_no,
                 method=str(request.get("method") or ""),
                 path=request.get("path") or entry.get("path"),
-                status=response.get("statusCode"),
                 headers=normalize_headers(request.get("headers")),
+                response=Response(
+                    status=response.get("statusCode"),
+                    headers=normalize_headers(response.get("headers")),
+                ),
                 raw=raw,
                 meta={
                     "api": str(entry.get("api") or ""),
@@ -65,15 +68,20 @@ def parse_http(path: Path) -> Iterable[Request]:
             try:
                 entry = json.loads(raw)
             except json.JSONDecodeError:
-                yield Request(source="http", line_no=line_no, method="", path=None, status=None, raw=raw)
+                yield Request(source="http", line_no=line_no, method="", path=None, raw=raw)
                 continue
+            request = entry.get("request") or {}
+            response = entry.get("response") or {}
             yield Request(
                 source="http",
                 line_no=line_no,
-                method=str(entry.get("method") or ""),
-                path=entry.get("path"),
-                status=entry.get("status"),
-                headers=normalize_headers(entry.get("headers")),
+                method=str(request.get("method") or ""),
+                path=request.get("path"),
+                headers=normalize_headers(request.get("headers")),
+                response=Response(
+                    status=response.get("status"),
+                    headers=normalize_headers(response.get("headers")),
+                ),
                 raw=raw,
             )
 
@@ -86,7 +94,7 @@ def parse_squid(path: Path) -> Iterable[Request]:
                 continue
             match = SQUID_RE.match(raw)
             if not match:
-                yield Request(source="squid", line_no=line_no, method="", path=None, status=None, raw=raw)
+                yield Request(source="squid", line_no=line_no, method="", path=None, raw=raw)
                 continue
 
             status = None
@@ -100,8 +108,11 @@ def parse_squid(path: Path) -> Iterable[Request]:
                 line_no=line_no,
                 method=match.group("method"),
                 path=match.group("path"),
-                status=status,
-                headers=_decode_squid_headers(match.group("headers")),
+                headers=_decode_squid_headers(match.group("request_headers")),
+                response=Response(
+                    status=status,
+                    headers=_decode_squid_headers(match.group("response_headers")),
+                ),
                 raw=raw,
                 meta={"client": match.group("client"), "result": match.group("result")},
             )
