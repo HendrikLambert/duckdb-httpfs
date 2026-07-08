@@ -51,7 +51,7 @@ def format_request(request: Request, header: str) -> str:
         [
             f"  {request.source} line {request.line_no}:",
             f"    {request.method or '<unknown>'} {request.path or '<unknown>'}",
-            f"    status={request.status if request.status is not None else '-'}",
+            f"    status={request.response.status if request.response.status is not None else '-'}",
             f"    {header}={shown}",
             f"    raw={request.raw[:500]}",
         ]

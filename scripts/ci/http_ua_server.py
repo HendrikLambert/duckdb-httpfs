@@ -15,15 +15,37 @@ _log = open(LOG_PATH, "a", buffering=1)
 
 
 class HeaderLoggingHandler(SimpleHTTPRequestHandler):
-    def log_request(self, code="-", size="-"):
+    def send_response(self, code, message=None):
         if isinstance(code, HTTPStatus):
             code = code.value
-        headers = {key.lower(): value for key, value in self.headers.items()}
+        self._response_status = code if isinstance(code, int) else None
+        self._response_headers = {}
+        super().send_response(code, message)
+
+    def send_header(self, keyword, value):
+        if not hasattr(self, "_response_headers"):
+            self._response_headers = {}
+        self._response_headers[keyword.lower()] = str(value)
+        super().send_header(keyword, value)
+
+    def end_headers(self):
+        super().end_headers()
+        self._write_log()
+
+    def log_request(self, code="-", size="-"):
+        pass
+
+    def _write_log(self):
         entry = {
-            "method": self.command,
-            "path": self.path,
-            "status": code if isinstance(code, int) else None,
-            "headers": headers,
+            "request": {
+                "method": self.command,
+                "path": self.path,
+                "headers": {key.lower(): value for key, value in self.headers.items()},
+            },
+            "response": {
+                "status": getattr(self, "_response_status", None),
+                "headers": getattr(self, "_response_headers", {}),
+            },
         }
         with _lock:
             _log.write(json.dumps(entry) + "\n")
