@@ -49,6 +49,7 @@ unique_ptr<HTTPParams> HTTPFSUtil::InitializeParameters(optional_ptr<FileOpener>
 	FileOpener::TryGetCurrentSetting(opener, "force_download_threshold", result->force_download_threshold, info);
 	FileOpener::TryGetCurrentSetting(opener, "auto_fallback_to_full_download", result->auto_fallback_to_full_download,
 	                                 info);
+	FileOpener::TryGetCurrentSetting(opener, "disable_http_compression", result->disable_http_compression, info);
 	FileOpener::TryGetCurrentSetting(opener, "http_retries", result->retries, info);
 	FileOpener::TryGetCurrentSetting(opener, "http_retry_wait_ms", result->retry_wait_ms, info);
 	FileOpener::TryGetCurrentSetting(opener, "http_retry_backoff", result->retry_backoff, info);

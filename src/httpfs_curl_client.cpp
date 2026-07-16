@@ -489,8 +489,17 @@ public:
 			// Add headers if any
 			curl_easy_setopt(*curl, CURLOPT_HTTPHEADER, curl_headers ? curl_headers.headers : nullptr);
 
+			// POST has no range semantics, so advertising content-encoding is safe
+			const bool advertise_encoding = !info.params.Cast<HTTPFSParams>().disable_http_compression;
+			if (advertise_encoding) {
+				curl_easy_setopt(*curl, CURLOPT_ACCEPT_ENCODING, "");
+			}
+
 			// Execute POST request
 			res = curl->Execute();
+			if (advertise_encoding) {
+				curl_easy_setopt(*curl, CURLOPT_ACCEPT_ENCODING, nullptr);
+			}
 			curl_easy_setopt(*curl, CURLOPT_CUSTOMREQUEST, nullptr);
 			curl_easy_setopt(*curl, CURLOPT_POSTFIELDS, nullptr);
 			curl_easy_setopt(*curl, CURLOPT_POSTFIELDSIZE, 0);

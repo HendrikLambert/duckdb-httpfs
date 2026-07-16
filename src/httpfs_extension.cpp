@@ -59,6 +59,9 @@ static void LoadInternal(ExtensionLoader &loader) {
 	config.AddExtensionOption("auto_fallback_to_full_download",
 	                          "Allows automatically falling back to full file downloads when possible.",
 	                          LogicalType::BOOLEAN, Value(true));
+	config.AddExtensionOption("disable_http_compression",
+	                          "Disable HTTP content-encoding negotiation (Accept-Encoding), forcing identity transfers",
+	                          LogicalType::BOOLEAN, Value(false));
 	// Reduces the number of requests made while waiting, for example retry_wait_ms of 50 and backoff factor of 2 will
 	// result in wait times of  0 50 100 200 400...etc.
 	config.AddExtensionOption("http_retry_backoff", "Backoff factor for exponentially increasing retry wait time",
