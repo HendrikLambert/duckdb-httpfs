@@ -40,6 +40,11 @@ fi
 "$MC" cp /duckdb/test_data/attach.db "$ALIAS/test-bucket/presigned/attach.db"
 "$MC" cp /duckdb/test_data/lineitem_sf1.db "$ALIAS/test-bucket/presigned/lineitem_sf1.db"
 
+# Same gzip bytes seeded two ways: a plain .gz (duckdb decodes it by extension), and a .json
+# served with Content-Encoding: gzip (the HTTP client must decode it).
+"$MC" cp /duckdb/data/json/example_rn.ndjson.gz "$ALIAS/test-bucket/gzip/plain.ndjson.gz"
+"$MC" cp --attr Content-Encoding=gzip /duckdb/data/json/example_rn.ndjson.gz "$ALIAS/test-bucket/gzip/transfer_encoded.json"
+
 "$MC" share download "$ALIAS/test-bucket/presigned/phonenumbers.csv"
 "$MC" share download "$ALIAS/test-bucket/presigned/t1.parquet"
 "$MC" share download "$ALIAS/test-bucket/presigned/lineitem_large.parquet"
