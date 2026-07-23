@@ -1425,6 +1425,7 @@ string AWSListObjectV2::Request(EncryptionUtil &encryption_util, const string &p
 			    response << string(const_char_ptr_cast(data), data_length);
 			    return true;
 		    });
+		get_request.response_content_encoding = ResponseContentEncodingMode::NEGOTIATE;
 		auto result = http_params.http_util.Request(get_request);
 		if (result->HasRequestError()) {
 			throw IOException("%s error for HTTP GET to '%s'", result->GetRequestError(), listobjectv2_url);

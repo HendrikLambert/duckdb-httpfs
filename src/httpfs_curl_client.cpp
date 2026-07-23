@@ -186,7 +186,7 @@ public:
 		curl_easy_setopt(*curl, CURLOPT_TIMEOUT, http_params.timeout);
 		// set connection timeout
 		curl_easy_setopt(*curl, CURLOPT_CONNECTTIMEOUT, http_params.timeout);
-		// accept content as-is (i.e no decompressing)
+		// resting state: no Accept-Encoding header and no decoding; ApplyEncodingMode arms this per request
 		curl_easy_setopt(*curl, CURLOPT_ACCEPT_ENCODING, NULL);
 		// follow redirects
 		curl_easy_setopt(*curl, CURLOPT_FOLLOWLOCATION, http_params.follow_location ? 1L : 0L);
@@ -232,6 +232,7 @@ public:
 		}
 
 		auto curl_headers = TransformHeadersCurl(info.headers, info.params);
+		const bool decode_armed = ApplyEncodingMode(info, curl_headers);
 		request_info->url = info.url;
 
 		CURLcode res;
@@ -248,6 +249,7 @@ public:
 			curl_easy_setopt(*curl, CURLOPT_HTTPHEADER, curl_headers ? curl_headers.headers : nullptr);
 
 			res = curl->Execute();
+			ResetEncodingMode(decode_armed);
 			curl_url_cleanup(url);
 		}
 
@@ -284,7 +286,7 @@ public:
 		}
 
 		if (info.response_handler) {
-			auto response = TransformResponseCurl(res);
+			auto response = TransformResponseCurl(res, decode_armed);
 			if (!info.response_handler(*response)) {
 				return response;
 			}
@@ -295,7 +297,7 @@ public:
 			info.content_handler(const_data_ptr_cast(data), bytes_received);
 		}
 
-		return TransformResponseCurl(res);
+		return TransformResponseCurl(res, decode_armed);
 	}
 
 	unique_ptr<HTTPResponse> Put(PutRequestInfo &info) override {
@@ -307,6 +309,7 @@ public:
 		}
 
 		auto curl_headers = TransformHeadersCurl(info.headers, info.params);
+		const bool decode_armed = ApplyEncodingMode(info, curl_headers);
 		// Add content type header from info
 		curl_headers.Add("Content-Type: " + info.content_type);
 		// transform parameters
@@ -336,6 +339,7 @@ public:
 			curl_easy_setopt(*curl, CURLOPT_HTTPHEADER, curl_headers ? curl_headers.headers : nullptr);
 
 			res = curl->Execute();
+			ResetEncodingMode(decode_armed);
 			curl_easy_setopt(*curl, CURLOPT_CUSTOMREQUEST, nullptr);
 			curl_easy_setopt(*curl, CURLOPT_POSTFIELDS, nullptr);
 			curl_easy_setopt(*curl, CURLOPT_POSTFIELDSIZE, 0);
@@ -345,7 +349,7 @@ public:
 
 		curl_easy_getinfo(*curl, CURLINFO_RESPONSE_CODE, &request_info->response_code);
 
-		return TransformResponseCurl(res);
+		return TransformResponseCurl(res, decode_armed);
 	}
 
 	unique_ptr<HTTPResponse> Head(HeadRequestInfo &info) override {
@@ -356,6 +360,7 @@ public:
 		}
 
 		auto curl_headers = TransformHeadersCurl(info.headers, info.params);
+		const bool decode_armed = ApplyEncodingMode(info, curl_headers);
 		request_info->url = info.url;
 		// transform parameters
 
@@ -378,13 +383,14 @@ public:
 
 			// Execute HEAD request
 			res = curl->Execute();
+			ResetEncodingMode(decode_armed);
 			curl_easy_setopt(*curl, CURLOPT_NOBODY, 0L);
 			curl_easy_setopt(*curl, CURLOPT_HTTPGET, 1L);
 			curl_url_cleanup(url);
 		}
 
 		curl_easy_getinfo(*curl, CURLINFO_RESPONSE_CODE, &request_info->response_code);
-		return TransformResponseCurl(res);
+		return TransformResponseCurl(res, decode_armed);
 	}
 
 	unique_ptr<HTTPResponse> Delete(DeleteRequestInfo &info) override {
@@ -394,6 +400,7 @@ public:
 			state->delete_count++;
 		}
 		auto curl_headers = TransformHeadersCurl(info.headers, info.params);
+		const bool decode_armed = ApplyEncodingMode(info, curl_headers);
 		// transform parameters
 		request_info->url = info.url;
 
@@ -415,18 +422,20 @@ public:
 
 			// Execute DELETE request
 			res = curl->Execute();
+			ResetEncodingMode(decode_armed);
 			curl_easy_setopt(*curl, CURLOPT_CUSTOMREQUEST, nullptr);
 			curl_url_cleanup(url);
 		}
 
 		// Get HTTP response status code
 		curl_easy_getinfo(*curl, CURLINFO_RESPONSE_CODE, &request_info->response_code);
-		return TransformResponseCurl(res);
+		return TransformResponseCurl(res, decode_armed);
 	}
 
 	unique_ptr<HTTPResponse> Options(OptionsRequestInfo &info) override {
 		ResetRequestInfo();
 		auto curl_headers = TransformHeadersCurl(info.headers, info.params);
+		const bool decode_armed = ApplyEncodingMode(info, curl_headers);
 		request_info->url = info.url;
 
 		CURLcode res;
@@ -444,12 +453,13 @@ public:
 			curl_easy_setopt(*curl, CURLOPT_HTTPHEADER, curl_headers ? curl_headers.headers : nullptr);
 
 			res = curl->Execute();
+			ResetEncodingMode(decode_armed);
 			curl_easy_setopt(*curl, CURLOPT_CUSTOMREQUEST, nullptr);
 			curl_url_cleanup(url);
 		}
 
 		curl_easy_getinfo(*curl, CURLINFO_RESPONSE_CODE, &request_info->response_code);
-		return TransformResponseCurl(res);
+		return TransformResponseCurl(res, decode_armed);
 	}
 
 	unique_ptr<HTTPResponse> Post(PostRequestInfo &info) override {
@@ -461,6 +471,7 @@ public:
 		}
 
 		auto curl_headers = TransformHeadersCurl(info.headers, info.params);
+		const bool decode_armed = ApplyEncodingMode(info, curl_headers);
 		if (!info.headers.HasHeader("Content-Type")) {
 			const string content_type = "Content-Type: application/octet-stream";
 			curl_headers.Add(content_type.c_str());
@@ -489,17 +500,9 @@ public:
 			// Add headers if any
 			curl_easy_setopt(*curl, CURLOPT_HTTPHEADER, curl_headers ? curl_headers.headers : nullptr);
 
-			// POST has no range semantics, so advertising content-encoding is safe
-			const bool advertise_encoding = !info.params.Cast<HTTPFSParams>().disable_http_compression;
-			if (advertise_encoding) {
-				curl_easy_setopt(*curl, CURLOPT_ACCEPT_ENCODING, "");
-			}
-
 			// Execute POST request
 			res = curl->Execute();
-			if (advertise_encoding) {
-				curl_easy_setopt(*curl, CURLOPT_ACCEPT_ENCODING, nullptr);
-			}
+			ResetEncodingMode(decode_armed);
 			curl_easy_setopt(*curl, CURLOPT_CUSTOMREQUEST, nullptr);
 			curl_easy_setopt(*curl, CURLOPT_POSTFIELDS, nullptr);
 			curl_easy_setopt(*curl, CURLOPT_POSTFIELDSIZE, 0);
@@ -516,7 +519,7 @@ public:
 		}
 
 		// Construct HTTPResponse
-		return TransformResponseCurl(res);
+		return TransformResponseCurl(res, decode_armed);
 	}
 
 	void Cleanup() override {
@@ -525,6 +528,41 @@ public:
 	}
 
 private:
+	//! Applies the request's response_content_encoding to the curl handle; returns whether decoding is armed
+	bool ApplyEncodingMode(const BaseRequest &info, CURLRequestHeaders &curl_headers) {
+		auto mode = info.response_content_encoding;
+		if (info.params.Cast<HTTPFSParams>().disable_http_compression) {
+			mode = ResponseContentEncodingMode::IDENTITY_NO_DECODE;
+		}
+		switch (mode) {
+		case ResponseContentEncodingMode::NEGOTIATE:
+			// curl advertises what it was built to decode and decodes the response
+			curl_easy_setopt(*curl, CURLOPT_ACCEPT_ENCODING, "");
+			return true;
+		case ResponseContentEncodingMode::IDENTITY_DECODE_FALLBACK:
+			// advertise identity, but still decode if the server responds encoded anyway
+			curl_easy_setopt(*curl, CURLOPT_ACCEPT_ENCODING, "identity");
+			return true;
+		case ResponseContentEncodingMode::IDENTITY_NO_DECODE:
+			// IDENTITY_NO_DECODE: decoding stays off, advertise identity explicitly
+			if (!info.headers.HasHeader("Accept-Encoding")) {
+				curl_headers.Add("Accept-Encoding: identity");
+			}
+			return false;
+		default:
+			// Should be handled
+			D_ASSERT(false);
+			return false;
+		}
+	}
+
+	void ResetEncodingMode(bool decode_armed) {
+		// the curl handle is pooled: return it to its no-decoding resting state
+		if (decode_armed) {
+			curl_easy_setopt(*curl, CURLOPT_ACCEPT_ENCODING, nullptr);
+		}
+	}
+
 	CURLRequestHeaders TransformHeadersCurl(const HTTPHeaders &header_map, const HTTPParams &params) {
 		auto &httpfs_params = params.Cast<HTTPFSParams>();
 
@@ -554,7 +592,7 @@ private:
 		request_info->response_code = 0;
 	}
 
-	unique_ptr<HTTPResponse> TransformResponseCurl(CURLcode res) {
+	unique_ptr<HTTPResponse> TransformResponseCurl(CURLcode res, bool decode_armed = false) {
 		auto status_code = HTTPStatusCode(request_info->response_code);
 		auto response = make_uniq<HTTPResponse>(status_code);
 		if (res != CURLcode::CURLE_OK) {
@@ -565,10 +603,23 @@ private:
 		response->url = request_info->url;
 		response->reason = HTTPUtil::GetStatusMessage(HTTPUtil::ToStatusCode(request_info->response_code));
 		if (!request_info->header_collection.empty()) {
-			for (auto &header : request_info->header_collection.back()) {
+			auto &collected_headers = request_info->header_collection.back();
+			// when curl decoded the body, Content-Encoding/Content-Length describe the wire, not the delivered body
+			bool scrub_encoding_headers = false;
+			if (decode_armed && collected_headers.HasHeader("Content-Encoding")) {
+				const auto encoding = StringUtil::Lower(collected_headers.GetHeaderValue("Content-Encoding"));
+				scrub_encoding_headers = !encoding.empty() && encoding != "identity";
+			}
+			for (auto &header : collected_headers) {
 				// We should not return __RESPONSE_STATUS__ to the user. It's only there for debugging.
 				if (header.first == "__RESPONSE_STATUS__") {
 					continue;
+				}
+				if (scrub_encoding_headers) {
+					const auto name = StringUtil::Lower(header.first);
+					if (name == "content-encoding" || name == "content-length") {
+						continue;
+					}
 				}
 				response->headers.Insert(header.first, header.second);
 			}

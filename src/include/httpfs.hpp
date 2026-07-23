@@ -65,6 +65,14 @@ public:
 
 class HTTPFileSystem;
 
+//! Per-handle content-encoding policy. Derived from the open flags, never user-set: exactly one layer may decode.
+enum class HTTPFileEncoding : uint8_t {
+	//! A CompressedFileSystem wrapper sits above the handle; serve stored bytes untouched.
+	PASS_RAW,
+	//! No wrapper above; on a supported Content-Encoding, decode inside httpfs.
+	DECODE_IF_ENCODED
+};
+
 class HTTPFileHandle : public FileHandle {
 public:
 	HTTPFileHandle(FileSystem &fs, const OpenFileInfo &file, FileOpenFlags flags, unique_ptr<HTTPParams> params);
@@ -86,6 +94,8 @@ public:
 	string etag;
 	string version_id;
 	bool force_full_download;
+	//! Content-encoding policy, derived once from the open flags in the constructor (the only read of the bit)
+	HTTPFileEncoding encoding_policy;
 	bool initialized = false;
 
 	bool auto_fallback_to_full_file_download = true;
@@ -131,6 +141,11 @@ public:
 	// Whether to bypass the read buffer
 	bool SkipBuffer() const {
 		return flags.DirectIO() || flags.RequireParallelAccess();
+	}
+
+	//! Single source of truth for the decode path and the byte-domain cache tag, so they cannot disagree.
+	bool ResolvesContentEncoding() const {
+		return encoding_policy == HTTPFileEncoding::DECODE_IF_ENCODED && !http_params.disable_http_compression;
 	}
 
 private:

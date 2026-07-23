@@ -161,6 +161,7 @@ unique_ptr<HTTPResponse> HTTPFileSystem::PostRequest(HTTPInput &input, string ur
 	AddHandleHeaders(input.http_params, header_map);
 
 	PostRequestInfo post_request(url, header_map, input.http_params, const_data_ptr_cast(buffer_in), buffer_in_len);
+	post_request.response_content_encoding = ResponseContentEncodingMode::NEGOTIATE;
 	auto result = http_util.Request(post_request);
 	buffer_out = std::move(post_request.buffer_out);
 	return result;
@@ -176,6 +177,7 @@ unique_ptr<HTTPResponse> HTTPFileSystem::PutRequest(HTTPInput &input, string url
 	string content_type = "application/octet-stream";
 	PutRequestInfo put_request(url, header_map, input.http_params, (const_data_ptr_t)buffer_in, buffer_in_len,
 	                           content_type);
+	put_request.response_content_encoding = ResponseContentEncodingMode::IDENTITY_NO_DECODE;
 	return http_util.Request(put_request);
 }
 
@@ -189,6 +191,7 @@ unique_ptr<HTTPResponse> HTTPFileSystem::HeadRequest(FileHandle &handle, string 
 	auto http_client = hfh.GetClient();
 
 	HeadRequestInfo head_request(url, header_map, hfh.http_params);
+	head_request.response_content_encoding = ResponseContentEncodingMode::IDENTITY_NO_DECODE;
 	auto response = http_util.Request(head_request, http_client);
 
 	hfh.StoreClient(std::move(http_client));
@@ -204,6 +207,7 @@ unique_ptr<HTTPResponse> HTTPFileSystem::DeleteRequest(FileHandle &handle, strin
 
 	auto http_client = hfh.GetClient();
 	DeleteRequestInfo delete_request(url, header_map, hfh.http_params);
+	delete_request.response_content_encoding = ResponseContentEncodingMode::IDENTITY_NO_DECODE;
 	auto response = http_util.Request(delete_request, http_client);
 
 	hfh.StoreClient(std::move(http_client));
@@ -269,6 +273,10 @@ unique_ptr<HTTPResponse> HTTPFileSystem::GetRequest(FileHandle &handle, string u
 		    }
 		    return true;
 	    });
+	// The full download is where a decode-domain handle lets curl inflate a Content-Encoded body into the cache.
+	get_request.response_content_encoding = hfh.ResolvesContentEncoding()
+	                                            ? ResponseContentEncodingMode::IDENTITY_DECODE_FALLBACK
+	                                            : ResponseContentEncodingMode::IDENTITY_NO_DECODE;
 
 	auto response = http_util.Request(get_request, http_client);
 
@@ -336,6 +344,18 @@ unique_ptr<HTTPResponse> HTTPFileSystem::GetRangeRequest(FileHandle &handle, str
 				    hfh.version_id = response.GetHeaderValue("x-amz-version-id");
 			    }
 
+			    if (hfh.ResolvesContentEncoding() && response.HasHeader("Content-Encoding")) {
+				    auto content_encoding = StringUtil::Lower(response.GetHeaderValue("Content-Encoding"));
+				    if (!content_encoding.empty() && content_encoding != "identity") {
+					    // A range of an encoded object is undecodable; escalate to a full download that curl inflates.
+					    hfh.force_full_download = true;
+					    DUCKDB_LOG_INFO(hfh.logger,
+					                    "Content-Encoding '%s' on '%s': downloading and decoding the full object.",
+					                    content_encoding, hfh.path);
+					    return false;
+				    }
+			    }
+
 			    if (response.HasHeader("Content-Length")) {
 				    unsigned long long content_length;
 				    bool parsed = false;
@@ -369,6 +389,7 @@ unique_ptr<HTTPResponse> HTTPFileSystem::GetRangeRequest(FileHandle &handle, str
 		    return true;
 	    });
 
+	get_request.response_content_encoding = ResponseContentEncodingMode::IDENTITY_NO_DECODE;
 	get_request.try_request = hfh.auto_fallback_to_full_file_download;
 
 	auto response = http_util.Request(get_request, http_client);
@@ -397,6 +418,8 @@ HTTPFileHandle::HTTPFileHandle(FileSystem &fs, const OpenFileInfo &file, FileOpe
     : FileHandle(fs, file.path, flags), http_input(std::move(input_p)), http_params(http_input->http_params),
       flags(flags), length(0), last_modified(0), force_full_download(false), buffer_available(0), buffer_idx(0),
       file_offset(0), buffer_start(0), buffer_end(0) {
+	encoding_policy = flags.HasUpstreamCompressionWrapper() ? HTTPFileEncoding::PASS_RAW
+	                                                        : HTTPFileEncoding::DECODE_IF_ENCODED;
 	// check if the handle has extended properties that can be set directly in the handle
 	// if we have these properties we don't need to do a head request to obtain them later
 	if (file.extended_info) {
@@ -553,6 +576,11 @@ bool HTTPFileSystem::TryRangeRequest(FileHandle &handle, string url, HTTPHeaders
 	const auto timestamp_before = std::chrono::steady_clock::now();
 	auto res = GetRangeRequest(handle, url, header_map, file_offset, buffer_out, buffer_out_len);
 
+	if (hfh.force_full_download) {
+		// The range response carried a Content-Encoding; escalate to a full download that decodes.
+		return false;
+	}
+
 	if (res) {
 		// Request succeeded TODO: fix upstream that 206 is not considered success
 		if (res->Success() || res->status == HTTPStatusCode::PartialContent_206 ||
@@ -697,14 +725,14 @@ void HTTPFileSystem::Read(FileHandle &handle, void *buffer, int64_t nr_bytes, id
 	// ReadInternal returned false. This means the regular path of querying the file with range requests failed. We will
 	// attempt to download the full file and retry.
 
-	if (handle.logger) {
+	auto &hfh = handle.Cast<HTTPFileHandle>();
+
+	if (handle.logger && !hfh.force_full_download) {
 		DUCKDB_LOG_WARNING(handle.logger,
 		                   "Falling back to full file download for file '%s': the server does not support HTTP range "
 		                   "requests. Performance and memory usage are potentially degraded.",
 		                   handle.path);
 	}
-
-	auto &hfh = handle.Cast<HTTPFileHandle>();
 
 	bool should_write_cache = false;
 	hfh.FullDownload(*this, should_write_cache);
@@ -746,9 +774,17 @@ timestamp_t HTTPFileSystem::GetLastModifiedTime(FileHandle &handle) {
 	return sfh.last_modified;
 }
 
+// '\n' cannot occur in a valid ETag (RFC 7232), so a qualified tag never collides with a raw one.
+static constexpr const char *CE_HTTPFS_DECODE_DOMAIN_SUFFIX = "\nce-resolved-by=httpfs";
+
 string HTTPFileSystem::GetVersionTag(FileHandle &handle) {
 	auto &sfh = handle.Cast<HTTPFileHandle>();
-	return sfh.etag;
+	// Keep an empty tag empty: a synthetic non-empty tag would switch the external file cache from last-modified
+	// validation to constant-tag validation, serving stale content on servers that send no ETag.
+	if (!sfh.ResolvesContentEncoding() || sfh.etag.empty()) {
+		return sfh.etag;
+	}
+	return sfh.etag + CE_HTTPFS_DECODE_DOMAIN_SUFFIX;
 }
 
 bool HTTPFileSystem::FileExists(const string &filename, optional_ptr<FileOpener> opener) {
@@ -813,7 +849,7 @@ void HTTPFileHandle::FullDownload(HTTPFileSystem &hfs, bool &should_write_cache)
 		should_write_cache = false;
 		return;
 	}
-	const auto &cache_entry = http_params.state->GetCachedFile(path);
+	const auto &cache_entry = http_params.state->GetCachedFile(path, ResolvesContentEncoding());
 	cached_file_handle = cache_entry->GetHandle();
 	if (!cached_file_handle->Initialized()) {
 		try {
@@ -889,7 +925,7 @@ void HTTPFileHandle::LoadFileInfo() {
 
 	// Check if file is already fully cached (e.g., from a prior force_download_threshold open)
 	if (http_params.state) {
-		const auto &cache_entry = http_params.state->GetCachedFile(path);
+		const auto &cache_entry = http_params.state->GetCachedFile(path, ResolvesContentEncoding());
 		auto handle = cache_entry->GetHandle();
 		if (handle->Initialized()) {
 			length = handle->GetSize();
@@ -960,6 +996,15 @@ void HTTPFileHandle::LoadFileInfo() {
 	if (http_params.s3_version_id_pinning && res->headers.HasHeader("x-amz-version-id")) {
 		version_id = res->headers.GetHeaderValue("x-amz-version-id");
 	}
+	if (ResolvesContentEncoding() && res->headers.HasHeader("Content-Encoding")) {
+		auto content_encoding = StringUtil::Lower(res->headers.GetHeaderValue("Content-Encoding"));
+		if (!content_encoding.empty() && content_encoding != "identity") {
+			// Ranges over an encoded object are undecodable, so download the whole body and let curl inflate it.
+			force_full_download = true;
+			DUCKDB_LOG_INFO(logger, "Content-Encoding '%s' on '%s': downloading and decoding the full object.",
+			                content_encoding, path);
+		}
+	}
 	initialized = true;
 }
 
@@ -998,6 +1043,7 @@ HTTPMetadataCacheEntry HTTPFileHandle::GetCacheEntry() const {
 	result.last_modified = last_modified;
 	result.etag = etag;
 	result.version_id = version_id;
+	result.resolves_content_encoding = ResolvesContentEncoding();
 	// TODO: handle properties
 	return result;
 }
@@ -1026,13 +1072,18 @@ void HTTPFileHandle::Initialize(optional_ptr<FileOpener> opener) {
 			HTTPMetadataCacheEntry value;
 			bool found = current_cache->Find(path, value);
 
+			// A decoded entry stores the decoded length; a raw open needs the stored length (and vice versa).
+			if (found && value.resolves_content_encoding != ResolvesContentEncoding()) {
+				found = false;
+			}
+
 			if (found) {
 				InitializeFromCacheEntry(value);
 
 				// If a full file download exists in HTTPState, reuse it
 				// instead of falling through to range requests that may not be supported.
 				if (http_params.state) {
-					auto &cache_entry = http_params.state->GetCachedFile(path);
+					auto &cache_entry = http_params.state->GetCachedFile(path, ResolvesContentEncoding());
 					auto handle = cache_entry->GetHandle();
 					if (handle->Initialized()) {
 						cached_file_handle = std::move(handle);

@@ -74,8 +74,9 @@ class HTTPState : public ClientContextState {
 public:
 	//! Reset all counters and cached files
 	void Reset();
-	//! Get cache entry, create if not exists
-	shared_ptr<CachedFile> &GetCachedFile(const string &path);
+	//! Get cache entry, create if not exists. Keyed by (path, byte domain) so raw and decoded handles for the same
+	//! path never share a full-download buffer. Defaults to the raw domain, preserving behavior for external callers.
+	shared_ptr<CachedFile> &GetCachedFile(const string &path, bool resolves_content_encoding = false);
 	//! Helper functions to get the HTTP state
 	static shared_ptr<HTTPState> TryGetState(ClientContext &context);
 	static shared_ptr<HTTPState> TryGetState(optional_ptr<FileOpener> opener);

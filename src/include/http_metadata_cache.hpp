@@ -21,6 +21,8 @@ struct HTTPMetadataCacheEntry {
 	string etag;
 	string version_id;
 	unordered_map<string, string> properties;
+	//! Byte domain the length belongs to: a decoded entry must not satisfy a raw open (or vice versa)
+	bool resolves_content_encoding = false;
 };
 
 // Simple cache with a max age for an entry to be valid

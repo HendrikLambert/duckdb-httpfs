@@ -110,9 +110,11 @@ void HTTPState::WriteProfilingInformation(std::ostream &ss) {
 }
 
 //! Get cache entry, create if not exists
-shared_ptr<CachedFile> &HTTPState::GetCachedFile(const string &path) {
+shared_ptr<CachedFile> &HTTPState::GetCachedFile(const string &path, bool resolves_content_encoding) {
+	// '\n' cannot occur in a URL, so the decode-domain key never collides with a raw path.
+	const string key = resolves_content_encoding ? path + "\nce-resolved-by=httpfs" : path;
 	lock_guard<mutex> lock(cached_files_mutex);
-	auto &cache_entry_ref = cached_files[path];
+	auto &cache_entry_ref = cached_files[key];
 	if (!cache_entry_ref) {
 		cache_entry_ref = make_shared_ptr<CachedFile>();
 	}
