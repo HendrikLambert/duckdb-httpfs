@@ -47,7 +47,7 @@ source scripts/set_s3_test_server_variables.sh
 Now you should be able to run the S3 tests using minio, e.g.:
 
 ```bash
-build/debug/test/unittest test/sql/copy/s3/s3_hive_partition.test
+build/debug/test/unittest test/sql/todo/copy/s3/s3_hive_partition.test
 ```
 
 > minio uses port 9000. Clickhouse also uses port 9000. If the tests are not working and you have a running Clickhouse service - try killing it first, e.g. using `killall -9 clickhouse`
