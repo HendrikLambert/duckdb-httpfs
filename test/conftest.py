@@ -36,12 +36,14 @@ S3_CELL = {
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "todo: HTTPFS tests not yet migrated to a ducktest suite.")
+    config.addinivalue_line("markers", "local: service-free HTTPFS tests.")
     config.addinivalue_line("markers", "http: HTTP-specific tests backed by the managed HTTP origin.")
     config.addinivalue_line("markers", "s3: S3-specific tests backed by managed MinIO.")
     config.addinivalue_line("markers", "remote: backend-neutral tests run against HTTP and S3.")
     config.addinivalue_line("markers", "minio_s3: legacy TODO tests backed by managed MinIO.")
 
     register_suite(config, "todo", path="test/sql/todo", default=False)
+    register_suite(config, "local", path="test/sql/local")
     register_suite(
         config,
         "http",
