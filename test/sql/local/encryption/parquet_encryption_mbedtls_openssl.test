@@ -1,5 +1,5 @@
-# name: test/sql/todo/copy/parquet/parquet_encryption_mbedtls_openssl.test
-# description: Test Parquet encryption with OpenSSL
+# name: test/sql/local/encryption/parquet_encryption_mbedtls_openssl.test
+# description: OpenSSL and mbedTLS read each other's encrypted Parquet files for every AES key length
 # group: [parquet]
 
 require parquet

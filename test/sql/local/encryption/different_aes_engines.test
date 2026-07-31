@@ -1,13 +1,15 @@
-# name: test/sql/todo/copy/encryption/different_aes_engines.test
+# name: test/sql/local/encryption/different_aes_engines.test
+# description: Encrypted databases written by mbedTLS and OpenSSL are readable by the other engine
 # group: [encryption]
 
+# Write with mbedTLS and read with OpenSSL.
 foreach cipher GCM CTR
 
 statement ok
 SET force_mbedtls_unsafe = 'true';
 
 statement ok
-ATTACH '{TEST_DIR}/enc_test_{cipher}.db' as enc (ENCRYPTION_KEY 'asdf', ENCRYPTION_CIPHER '{cipher}');
+ATTACH '{TEST_DIR}/mbedtls_{cipher}.db' as enc (ENCRYPTION_KEY 'asdf', ENCRYPTION_CIPHER '{cipher}');
 
 statement ok
 CREATE TABLE enc.test (a INTEGER, b INTEGER);
@@ -23,7 +25,7 @@ restart
 require httpfs
 
 statement ok
-ATTACH '{TEST_DIR}/enc_test_{cipher}.db' as enc (ENCRYPTION_KEY 'asdf', ENCRYPTION_CIPHER '{cipher}');
+ATTACH '{TEST_DIR}/mbedtls_{cipher}.db' as enc (ENCRYPTION_KEY 'asdf', ENCRYPTION_CIPHER '{cipher}');
 
 query II
 FROM enc.test
@@ -39,13 +41,13 @@ SET force_mbedtls_unsafe = 'false';
 
 endloop
 
-
+# Write with OpenSSL and read with mbedTLS.
 foreach cipher GCM CTR
 
 require httpfs
 
 statement ok
-ATTACH '{TEST_DIR}/enc_test2_{cipher}.db' as enc (ENCRYPTION_KEY 'asdf', ENCRYPTION_CIPHER '{cipher}');
+ATTACH '{TEST_DIR}/openssl_{cipher}.db' as enc (ENCRYPTION_KEY 'asdf', ENCRYPTION_CIPHER '{cipher}');
 
 statement ok
 CREATE TABLE enc.test (a INTEGER, b INTEGER);
@@ -59,7 +61,10 @@ DETACH enc
 restart
 
 statement ok
-ATTACH '{TEST_DIR}/enc_test_{cipher}.db' as enc (ENCRYPTION_KEY 'asdf', ENCRYPTION_CIPHER '{cipher}');
+SET force_mbedtls_unsafe = 'true';
+
+statement ok
+ATTACH '{TEST_DIR}/openssl_{cipher}.db' as enc (ENCRYPTION_KEY 'asdf', ENCRYPTION_CIPHER '{cipher}');
 
 query II
 FROM enc.test
@@ -68,8 +73,6 @@ FROM enc.test
 13	22
 12	21
 
-
 restart
-
 
 endloop

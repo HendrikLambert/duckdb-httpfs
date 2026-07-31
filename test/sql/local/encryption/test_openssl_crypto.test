@@ -1,5 +1,5 @@
-# name: test/sql/todo/crypto/test_openssl_crypto.test
-# description: Test the openssl based crypto util
+# name: test/sql/local/encryption/test_openssl_crypto.test
+# description: OpenSSL-backed storage encryption writes and reads an attached GCM database
 # group: [crypto]
 
 require httpfs
