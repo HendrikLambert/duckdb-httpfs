@@ -1,4 +1,5 @@
-# name: test/sql/todo/full_file_download_fallback.test
+# name: test/sql/http/full_file_download_fallback.test
+# description: Fall back to a full download when an HTTP origin does not support range requests
 # group: [sql]
 
 require parquet
@@ -7,10 +8,6 @@ require httpfs
 
 require tpch
 
-require-env PYTHON_HTTP_SERVER_URL
-
-require-env PYTHON_HTTP_SERVER_DIR
-
 statement ok
 CALL enable_logging('HTTP');
 
@@ -18,7 +15,7 @@ statement ok
 call dbgen(sf=1);
 
 statement ok
-copy lineitem to '{PYTHON_HTTP_SERVER_DIR}/lineitem.csv'
+copy lineitem to '{LOCAL_TEMP_DIR}/lineitem.csv'
 
 statement ok
 drop table lineitem;
@@ -31,7 +28,7 @@ WHERE request.type='GET' AND request.headers['Range'] IS NOT NULL;
 
 statement ok
 CREATE VIEW lineitem AS
-SELECT * FROM read_csv('{PYTHON_HTTP_SERVER_URL}/lineitem.csv', auto_detect=false, header=true, columns={
+SELECT * FROM read_csv('{TEMP_DIR}/lineitem.csv', auto_detect=false, header=true, columns={
     'l_orderkey': 'BIGINT',
     'l_partkey': 'BIGINT',
     'l_suppkey': 'BIGINT',

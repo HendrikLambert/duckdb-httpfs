@@ -1,12 +1,8 @@
-# name: test/sql/todo/httpfs/http_extra_headers_setting.test
+# name: test/sql/http/http_extra_headers_setting.test
 # description: Test extra HTTP headers from the extra_http_headers setting
 # group: [httpfs]
 
 require httpfs
-
-require-env PYTHON_HTTP_SERVER_URL
-
-require-env PYTHON_HTTP_SERVER_DIR
 
 # FIXME: extra_http_headers is not yet in duckdb's autoload registry
 statement ok
@@ -21,16 +17,13 @@ SELECT current_setting('extra_http_headers');
 {}
 
 statement ok
-COPY (SELECT 1 AS a) TO '{PYTHON_HTTP_SERVER_DIR}/extra_http_headers.csv';
-
-statement ok
 SET extra_http_headers = MAP {'X-Setting-One': 'one', 'X-Setting-Two': 'two'};
 
 statement ok
 CALL enable_logging('HTTP');
 
 statement ok
-SELECT * FROM read_csv_auto('{PYTHON_HTTP_SERVER_URL}/extra_http_headers.csv');
+SELECT * FROM read_csv_auto('{DATA_DIR}/one.csv');
 
 query II
 SELECT DISTINCT request.headers['X-Setting-One'], request.headers['X-Setting-Two']
@@ -51,7 +44,7 @@ CREATE SECRET extra_http_headers_setting_override (
 );
 
 statement ok
-SELECT * FROM read_csv_auto('{PYTHON_HTTP_SERVER_URL}/extra_http_headers.csv');
+SELECT * FROM read_csv_auto('{DATA_DIR}/one.csv');
 
 query II
 SELECT DISTINCT request.headers['X-Setting-One'], request.headers['X-Setting-Two']
@@ -94,6 +87,6 @@ CREATE SECRET extra_http_headers_null (
 );
 
 statement error
-SELECT * FROM read_csv_auto('{PYTHON_HTTP_SERVER_URL}/extra_http_headers.csv')
+SELECT * FROM read_csv_auto('{DATA_DIR}/one.csv')
 ----
 extra_http_headers value for "X-Secret-Null" must not be NULL

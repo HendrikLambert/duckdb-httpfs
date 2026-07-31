@@ -13,4 +13,5 @@ def prepare_remote_data(config):
         working_dir / "duckdb/data/parquet-testing/userdata1.parquet",
         data_dir / "userdata1.parquet",
     )
+    (data_dir / "one.csv").write_text("i\n1\n", encoding="utf-8")
     return data_dir
