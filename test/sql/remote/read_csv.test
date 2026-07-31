@@ -1,0 +1,31 @@
+# name: test/sql/remote/read_csv.test
+# description: Auto-detect and scan the same CSV fixture through each remote filesystem backend
+# group: [csv]
+
+require httpfs
+
+statement ok
+PRAGMA enable_verification
+
+query TT rowsort
+SELECT column_name, column_type
+FROM (DESCRIBE SELECT * FROM read_csv_auto('{DATA_DIR}/customer.csv'))
+WHERE column_name IN ('column00', 'column01', 'column17')
+----
+column00	BIGINT
+column01	VARCHAR
+column17	BIGINT
+
+query IIII
+SELECT count(*), min(column00), max(column00), sum(column17)
+FROM read_csv_auto('{DATA_DIR}/customer.csv')
+----
+10	1	10	24524188
+
+# Exercise quoted delimiters and empty quoted fields as part of the remote scan.
+query ITT
+SELECT column00, column14, column15
+FROM read_csv_auto('{DATA_DIR}/customer.csv')
+WHERE column00 = 8
+----
+8	KOREA, REPUBLIC OF	NULL
