@@ -40,6 +40,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "http: HTTP-specific tests backed by the managed HTTP origin.")
     config.addinivalue_line("markers", "s3: S3-specific tests backed by managed MinIO.")
     config.addinivalue_line("markers", "remote: backend-neutral tests run against HTTP and S3.")
+    config.addinivalue_line("markers", "external: tests against real public HTTP providers.")
     config.addinivalue_line("markers", "minio_s3: legacy TODO tests backed by managed MinIO.")
 
     register_suite(config, "todo", path="test/sql/todo", default=False)
@@ -67,6 +68,7 @@ def pytest_configure(config):
         services=[HTTPFS_HTTP_SERVICE, HTTPFS_MINIO_SERVICE],
         matrix=[HTTP_CELL, S3_CELL],
     )
+    register_suite(config, "external", path="test/sql/external", default=False)
     register_suite(
         config,
         "minio_s3",

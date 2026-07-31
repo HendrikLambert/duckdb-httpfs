@@ -1,5 +1,5 @@
-# name: test/sql/todo/httpfs_client/httpfs_client_implementation.test
-# description: Tests basic valus for httpfs_client_implementation
+# name: test/sql/local/httpfs_client/httpfs_client_implementation.test
+# description: Validate the supported HTTP client implementation settings
 # group: [httpfs_client]
 
 require httpfs
@@ -9,6 +9,14 @@ set httpfs_client_implementation = 'default';
 
 statement ok
 set httpfs_client_implementation = 'httplib';
+
+statement ok
+set httpfs_client_implementation = 'curl';
+
+query T
+select current_setting('httpfs_client_implementation');
+----
+curl
 
 statement error
 set httpfs_client_implementation = 'something else';
