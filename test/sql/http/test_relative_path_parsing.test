@@ -1,4 +1,4 @@
-# name: test/sql/todo/curl_client/test_relative_path_parsing.test
+# name: test/sql/http/test_relative_path_parsing.test
 # description: test that parsing http url parts like /.//file works with localhost
 # group: [curl_client]
 
@@ -6,20 +6,16 @@ require httpfs
 
 set ignore_error_messages
 
-require-env PYTHON_HTTP_SERVER_URL
-
-require-env PYTHON_HTTP_SERVER_DIR
-
 statement ok
 CREATE TABLE lineitem as (SELECT 1 FROM range(0,5));
 
 statement ok
-copy lineitem to '{PYTHON_HTTP_SERVER_DIR}/lineitem.csv'
+copy lineitem to '{LOCAL_TEMP_DIR}/lineitem.csv'
 
 foreach httpfs_implementation curl httplib
 
 query I
-SELECT count(*) FROM '{PYTHON_HTTP_SERVER_URL}/lineitem.csv';
+SELECT count(*) FROM '{TEMP_DIR}/lineitem.csv';
 ----
 6
 
@@ -29,7 +25,7 @@ statement ok
 SET httpfs_client_implementation='{httpfs_implementation}';
 
 query I
-SELECT count(*) FROM '{PYTHON_HTTP_SERVER_URL}/{parts}lineitem.csv';
+SELECT count(*) FROM '{TEMP_DIR}/{parts}lineitem.csv';
 ----
 6
 

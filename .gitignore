@@ -357,3 +357,7 @@ extension_external
 test/sql/pragma/output.json
 tools/pythonpkg/duckdb_build/
 test/test_data
+pyproject.toml
+pytest.ini
+uv.lock
+.ducktest/
