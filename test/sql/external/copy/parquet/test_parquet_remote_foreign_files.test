@@ -1,10 +1,12 @@
-# name: test/sql/todo/copy/parquet/test_parquet_remote_foreign_files.test
-# description: Test queries on tricky parquet files over http. Note: on GH connection issues, these tests fail silently
+# name: test/sql/external/copy/parquet/test_parquet_remote_foreign_files.test
+# description: Test queries on tricky parquet files over http
 # group: [parquet]
 
 require parquet
 
 require httpfs
+
+set ignore_error_messages
 
 # /data/parquet-testing/bug1554.parquet
 query I

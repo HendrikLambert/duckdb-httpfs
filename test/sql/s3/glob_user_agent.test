@@ -1,4 +1,4 @@
-# name: test/sql/todo/s3/glob_user_agent.test
+# name: test/sql/s3/glob_user_agent.test
 # description: an S3 glob (LIST) request must carry a duckdb User-Agent
 # group: [s3]
 
@@ -17,23 +17,23 @@ require-env DUCKDB_S3_USE_SSL
 require httpfs
 
 statement ok
-set s3_use_ssl='${DUCKDB_S3_USE_SSL}'
+set s3_use_ssl='{DUCKDB_S3_USE_SSL}'
 
 statement ok
-set s3_endpoint='${DUCKDB_S3_ENDPOINT}'
+set s3_endpoint='{DUCKDB_S3_ENDPOINT}'
 
 statement ok
-set s3_region='${AWS_DEFAULT_REGION}'
+set s3_region='{AWS_DEFAULT_REGION}'
 
 statement ok
-CREATE SECRET s1 (TYPE S3, KEY_ID '${AWS_ACCESS_KEY_ID}', SECRET '${AWS_SECRET_ACCESS_KEY}')
+CREATE SECRET s1 (TYPE S3, KEY_ID '{AWS_ACCESS_KEY_ID}', SECRET '{AWS_SECRET_ACCESS_KEY}')
 
 statement ok
 CALL enable_logging('HTTP');
 
 # a glob issues an S3 LIST (GET) regardless of whether anything matches
 statement ok
-SELECT count(*) FROM glob('s3://test-bucket/*')
+SELECT count(*) FROM glob('{DATA_DIR}/*')
 
 query I
 SELECT count(*) > 0 FROM duckdb_logs_parsed('HTTP')

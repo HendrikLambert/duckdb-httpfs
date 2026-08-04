@@ -1,5 +1,5 @@
 # name: test/sql/external/attach/attach_remote.test
-# description: Test attach failures for a nonexistent remote database
+# description: Test attaching of remote database
 # group: [attach]
 
 require httpfs

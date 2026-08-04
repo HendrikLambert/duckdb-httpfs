@@ -1,5 +1,5 @@
 # name: test/sql/s3/attach_s3.test
-# description: Test read-only attach through S3
+# description: Test attach using httpfs
 # group: [attach]
 
 require httpfs
