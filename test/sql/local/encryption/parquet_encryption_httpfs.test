@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/parquet/parquet_encryption_httpfs.test
+# name: test/sql/local/encryption/parquet_encryption_httpfs.test
 # description: Test Parquet encryption with OpenSSL
 # group: [parquet]
 

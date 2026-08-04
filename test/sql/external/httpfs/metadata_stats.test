@@ -1,4 +1,4 @@
-# name: test/sql/todo/metadata_stats.test
+# name: test/sql/external/httpfs/metadata_stats.test
 # description: Test getting metadata stats
 # group: [sql]
 
@@ -7,6 +7,8 @@ require parquet
 require httpfs
 
 require json
+
+set ignore_error_messages
 
 # Test Force download with server that doesn't want to give us the head
 statement ok

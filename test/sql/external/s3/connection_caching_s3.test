@@ -1,4 +1,4 @@
-# name: test/sql/todo/s3/connection_caching_s3.test
+# name: test/sql/external/s3/connection_caching_s3.test
 # description: Test connection caching with S3 on a public bucket
 # group: [s3]
 

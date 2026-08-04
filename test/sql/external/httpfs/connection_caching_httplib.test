@@ -1,4 +1,4 @@
-# name: test/sql/todo/connection_caching_httplib.test
+# name: test/sql/external/httpfs/connection_caching_httplib.test
 # description: The httplib backend keeps per-handle connection reuse and never touches the shared pool
 # group: [sql]
 
