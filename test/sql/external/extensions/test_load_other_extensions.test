@@ -1,5 +1,5 @@
-# name: test/sql/todo/curl_client/test_load_other_extensions.test
-# description: when using the curl client, test loading other extensions
+# name: test/sql/external/extensions/test_load_other_extensions.test
+# description: Test extension-download errors through the curl client
 # group: [curl_client]
 
 require httpfs

@@ -1,5 +1,5 @@
-# name: test/sql/todo/attach/attach_httpfs.test
-# description: Test attach using httpfs
+# name: test/sql/s3/attach_httpfs.test
+# description: Test read-only attach through a presigned S3 HTTP URL
 # group: [attach]
 
 require httpfs
