@@ -24,7 +24,9 @@ S3_CELL = {
     "id": "s3",
     "properties": {
         "data_dir": env_ref("S3_DATA_URI"),
+        "local_data_dir": env_ref("S3_DATA_DIR"),
         "temp_dir_root": env_ref("S3_TEMP_URI_ROOT"),
+        "local_temp_dir_root": env_ref("S3_TEMP_DIR_ROOT"),
         "S3_ACCESS_KEY_ID": env_ref("S3_ACCESS_KEY_ID"),
         "S3_SECRET_ACCESS_KEY": env_ref("S3_SECRET_ACCESS_KEY"),
         "S3_REGION": env_ref("S3_REGION"),

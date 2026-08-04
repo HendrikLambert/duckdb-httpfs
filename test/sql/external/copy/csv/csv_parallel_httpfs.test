@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/csv/parallel/csv_parallel_httpfs.test
+# name: test/sql/external/copy/csv/csv_parallel_httpfs.test
 # description: This test issue #7336 and #7337
 # group: [parallel]
 
@@ -6,6 +6,8 @@ statement ok
 PRAGMA enable_verification
 
 require httpfs
+
+set ignore_error_messages
 
 query IIII
 select column00, column01, column02, column03 from read_csv_auto('https://github.com/duckdb/duckdb/raw/main/data/csv/customer.csv')

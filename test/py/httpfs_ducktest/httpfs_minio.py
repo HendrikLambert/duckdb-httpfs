@@ -104,13 +104,18 @@ def httpfs_minio_populate(block, config):
     minio_anonymous_set(block, "public", PUBLIC_BUCKET)
 
     seed_dir = _prepare_seed_dir(config)
+    data_dir = prepare_remote_data(config)
+    temp_dir_root = Path(scratch(config, "httpfs-minio", "temp"))
+    temp_dir_root.mkdir(parents=True, exist_ok=True)
     sync(str(seed_dir), remote, f"{block['bucket']}/{_PRESIGNED_PREFIX}")
-    sync(str(prepare_remote_data(config)), remote, f"{block['bucket']}/{block['data_prefix']}")
+    sync(str(data_dir), remote, f"{block['bucket']}/{block['data_prefix']}")
 
     def object_path(name):
         return f"{_PRESIGNED_PREFIX}/{name}"
 
     block["httpfs_env"] = {
+        "S3_DATA_DIR": str(data_dir),
+        "S3_TEMP_DIR_ROOT": str(temp_dir_root),
         "S3_ATTACH_DB": f"s3://{block['bucket']}/{object_path(_ATTACH_DB)}",
         "S3_ATTACH_DB_PRESIGNED_URL": minio_presigned_url(block, object_path(_ATTACH_DB)),
         "S3_SMALL_CSV_PRESIGNED_URL": minio_presigned_url(block, object_path(_SMALL_CSV)),
