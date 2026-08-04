@@ -1,4 +1,4 @@
-# name: test/sql/todo/json/table/read_json.test
+# name: test/sql/external/json/read_json.test
 # description: Read json files straight to columnar data
 # group: [table]
 

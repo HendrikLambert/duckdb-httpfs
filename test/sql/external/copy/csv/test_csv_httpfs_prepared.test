@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/csv/test_csv_httpfs_prepared.test
+# name: test/sql/external/copy/csv/test_csv_httpfs_prepared.test
 # description: CSV Reading From HTTPFS in Prepared Statements
 # group: [csv]
 

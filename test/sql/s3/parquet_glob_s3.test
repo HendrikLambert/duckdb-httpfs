@@ -31,18 +31,18 @@ set enable_external_file_cache=false;
 
 # Copy files to S3 before beginning tests
 statement ok
-COPY (select * from 'duckdb/data/parquet-testing/glob/t1.parquet') to 's3://test-bucket/parquet_glob_s3/glob/t1.parquet';
-COPY (select * from 'duckdb/data/parquet-testing/glob/t2.parquet') to 's3://test-bucket/parquet_glob_s3/glob/t2.parquet';
-COPY (select * from 'duckdb/data/parquet-testing/glob2/t1.parquet') to 's3://test-bucket/parquet_glob_s3/glob2/t1.parquet';
-COPY (select * from 'duckdb/data/parquet-testing/glob/t1.parquet') to 's3://test-bucket/parquet_glob_s3/with+plus/t1.parquet';
-COPY (select * from 'duckdb/data/parquet-testing/glob/t1.parquet') to 's3://test-bucket/parquet_glob_s3/with space/t1.parquet';
+COPY (select * from 'duckdb/data/parquet-testing/glob/t1.parquet') to '{TEMP_DIR}/parquet-glob/glob/t1.parquet';
+COPY (select * from 'duckdb/data/parquet-testing/glob/t2.parquet') to '{TEMP_DIR}/parquet-glob/glob/t2.parquet';
+COPY (select * from 'duckdb/data/parquet-testing/glob2/t1.parquet') to '{TEMP_DIR}/parquet-glob/glob2/t1.parquet';
+COPY (select * from 'duckdb/data/parquet-testing/glob/t1.parquet') to '{TEMP_DIR}/parquet-glob/with+plus/t1.parquet';
+COPY (select * from 'duckdb/data/parquet-testing/glob/t1.parquet') to '{TEMP_DIR}/parquet-glob/with space/t1.parquet';
 
 # parquet glob with COPY FROM
 statement ok
 CREATE TABLE vals (i INTEGER, j BLOB)
 
 statement ok
-COPY vals FROM 's3://test-bucket/parquet_glob_s3/glob/t[0-9].parquet' (FORMAT PARQUET);
+COPY vals FROM '{TEMP_DIR}/parquet-glob/glob/t[0-9].parquet' (FORMAT PARQUET);
 
 query II
 SELECT * FROM vals ORDER BY 1, 2
@@ -55,7 +55,7 @@ statement ok
 CREATE TABLE vals2 (i INTEGER, j INTEGER)
 
 statement error
-COPY vals2 FROM 's3://test-bucket/parquet_glob_s3/nonexistentfolderblablabla/t*.parquet' (FORMAT PARQUET);
+COPY vals2 FROM '{TEMP_DIR}/parquet-glob/nonexistentfolderblablabla/t*.parquet' (FORMAT PARQUET);
 ----
 
 # Test variety of urls with both url styles
@@ -66,38 +66,38 @@ SET s3_url_style='{urlstyle}'
 
 # Begin tests
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/glob/t[0-9].parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/glob/t[0-9].parquet')
 ----
 2
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/glob/*')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/glob/*')
 ----
 2
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/glob/*.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/glob/*.parquet')
 ----
 2
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/g*/*.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/g*/*.parquet')
 ----
 3
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/g*/t1.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/g*/t1.parquet')
 ----
 2
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/with*/*.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/with*/*.parquet')
 ----
 2
 
 # schema mismatch in parquet glob
 statement error
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/notglob/*.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/notglob/*.parquet')
 ----
 
 # parallel testing
@@ -105,33 +105,33 @@ statement ok
 PRAGMA threads=4
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/glob/*')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/glob/*')
 ----
 2
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/glob/*.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/glob/*.parquet')
 ----
 2
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/g*/*.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/g*/*.parquet')
 ----
 3
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/g*/t1.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/g*/t1.parquet')
 ----
 2
 
 # Question mark is not supported for S3 due to our use of query parameters
 statement error
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/glob/t?.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/glob/t?.parquet')
 ----
 Invalid query parameters found.
 
 statement error
-select count(*) from parquet_scan('s3://test-bucket/parquet_glob_s3/?lob/t?.parquet')
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/?lob/t?.parquet')
 ----
 Invalid query parameters found.
 
@@ -141,10 +141,10 @@ SET s3_url_compatibility_mode=true;
 
 # Note that this is actually a file called '?.*[1-0]parquet??' which S3 should theoretically accept;
 statement ok
-COPY vals TO 's3://test-bucket/the_horror/?.*[1-0]parquetta??' (FORMAT parquet);
+COPY vals TO '{TEMP_DIR}/parquet-glob/the-horror/?.*[1-0]parquetta??' (FORMAT parquet);
 
 query I
-select count(*) from parquet_scan('s3://test-bucket/the_horror/?.*[1-0]parquetta??');
+select count(*) from parquet_scan('{TEMP_DIR}/parquet-glob/the-horror/?.*[1-0]parquetta??');
 ----
 2
 
@@ -155,7 +155,7 @@ endloop
 
 # S3 glob gives us information necessary to skip HEAD requests
 query II
-EXPLAIN ANALYZE SELECT COUNT(*) FROM 's3://test-bucket/parquet_glob_s3/g*/*.parquet';
+EXPLAIN ANALYZE SELECT COUNT(*) FROM '{TEMP_DIR}/parquet-glob/g*/*.parquet';
 ----
 analyzed_plan	<REGEX>:.*HTTP Stats.*\#HEAD\: 0.*GET\: 4.*PUT\: 0.*\#POST\: 0.*
 
@@ -164,7 +164,7 @@ SET s3_allow_recursive_globbing = false;
 
 # S3 glob gives us information necessary to skip HEAD requests
 query II
-EXPLAIN ANALYZE SELECT COUNT(*) FROM 's3://test-bucket/parquet_glob_s3/g*/*.parquet';
+EXPLAIN ANALYZE SELECT COUNT(*) FROM '{TEMP_DIR}/parquet-glob/g*/*.parquet';
 ----
 analyzed_plan	<REGEX>:.*HTTP Stats.*\#HEAD\: 0.*GET\: 4.*PUT\: 0.*\#POST\: 0.*
 
@@ -172,7 +172,7 @@ statement ok
 SET s3_allow_recursive_globbing = true;
 
 statement ok
-SET VARIABLE file_list = (SELECT LIST(file) FROM GLOB('s3://test-bucket/parquet_glob_s3/g*/*.parquet'))
+SET VARIABLE file_list = (SELECT LIST(file) FROM GLOB('{TEMP_DIR}/parquet-glob/g*/*.parquet'))
 
 # sanity check for request count
 # we expect 1 HEAD request per file for the open call, then 1 GET for the list call

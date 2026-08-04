@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/parquet/delta_byte_array_multiple_pages.test
+# name: test/sql/external/copy/parquet/delta_byte_array_multiple_pages.test
 # description: Test delta byte array parquet file with multiple pages
 # group: [parquet]
 
@@ -18,6 +18,5 @@ query II
 SELECT min(strlen(json_column)), max(strlen(json_column)) FROM delta_byte_array
 ----
 54	54
-
 
 

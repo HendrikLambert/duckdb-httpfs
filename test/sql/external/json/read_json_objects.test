@@ -1,4 +1,4 @@
-# name: test/sql/todo/json/table/read_json_objects.test
+# name: test/sql/external/json/read_json_objects.test
 # description: Read ndjson files
 # group: [table]
 
@@ -24,4 +24,3 @@ select * from read_ndjson_objects('https://github.com/duckdb/duckdb-data/release
 {"id":3,"name":"The Firm"}
 {"id":4,"name":"Broadcast News"}
 {"id":5,"name":"Raising Arizona"}
-
