@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/parquet/test_parquet_remote.test
+# name: test/sql/external/copy/parquet/test_parquet_remote.test
 # description: Parquet read from S3/HTTPS
 # group: [parquet]
 

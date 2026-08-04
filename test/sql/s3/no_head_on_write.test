@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/no_head_on_write.test
+# name: test/sql/s3/no_head_on_write.test
 # description: Confirm that we don't send head requests for writes
 # group: [copy]
 
@@ -43,7 +43,7 @@ statement ok
 CALL enable_logging('HTTP');
 
 statement ok
-copy (select 1 as a) to 's3://test-bucket/test-file.parquet'
+copy (select 1 as a) to '{TEMP_DIR}/no-head-on-write/test-file.parquet'
 
 query I
 select count(*) FROM duckdb_logs_parsed('HTTP') WHERE request.type = 'HEAD'
@@ -54,7 +54,7 @@ statement ok
 CALL truncate_duckdb_logs();
 
 statement ok
-copy (select random() as a FROM range(8000000)) to 's3://test-bucket/test-file2.csv'
+copy (select random() as a FROM range(8000000)) to '{TEMP_DIR}/no-head-on-write/test-file2.csv'
 
 query I
 select count(*) FROM duckdb_logs_parsed('HTTP') WHERE request.type = 'HEAD'

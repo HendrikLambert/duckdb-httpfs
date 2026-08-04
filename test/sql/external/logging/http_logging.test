@@ -1,4 +1,5 @@
-# name: test/sql/todo/logging/http_logging.test
+# name: test/sql/external/logging/http_logging.test
+# description: HTTP logging records request, response, and range metadata
 # group: [logging]
 
 require parquet

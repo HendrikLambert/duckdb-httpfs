@@ -1,4 +1,4 @@
-# name: test/sql/todo/dotted_bucket_url.test
+# name: test/sql/external/s3/dotted_bucket_url.test
 # description: Test getting metadata stats
 # group: [sql]
 

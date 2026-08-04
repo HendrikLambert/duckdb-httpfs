@@ -1,4 +1,5 @@
-# name: test/sql/todo/logging/file_system_logging.test
+# name: test/sql/http/logging/file_system_logging.test
+# description: Filesystem tracing records local and HTTP open, read, write, and close operations
 # group: [logging]
 
 require parquet
@@ -12,10 +13,10 @@ statement ok
 set logging_level='trace';
 
 statement ok
-COPY (SELECT 1 as a) TO '{TEST_DIR}/test.csv'
+COPY (SELECT 1 as a) TO '{LOCAL_TEMP_DIR}/test.csv'
 
 statement ok
-FROM '{TEST_DIR}/test.csv'
+FROM '{LOCAL_TEMP_DIR}/test.csv'
 
 statement ok
 pragma threads=1
@@ -40,7 +41,7 @@ CALL truncate_duckdb_logs();
 require httpfs
 
 statement ok
-FROM 'https://github.com/duckdb/duckdb/raw/main/data/csv/customer.csv'
+FROM '{DATA_DIR}/customer.csv'
 
 query IIII
 SELECT scope, type, log_level, regexp_replace(message, '\"path\":.*test.csv"', '"test.csv"')
@@ -48,6 +49,6 @@ FROM duckdb_logs
 WHERE type = 'FileSystem' AND message NOT LIKE '%duckdb_extension%' AND message ILIKE '%HTTPFileSystem%'
 ORDER BY timestamp
 ----
-CONNECTION	FileSystem	TRACE	{"fs":"HTTPFileSystem","path":"https://github.com/duckdb/duckdb/raw/main/data/csv/customer.csv","op":"OPEN"}
-CONNECTION	FileSystem	TRACE	{"fs":"HTTPFileSystem","path":"https://github.com/duckdb/duckdb/raw/main/data/csv/customer.csv","op":"READ","bytes":"1276","pos":"0"}
-CONNECTION	FileSystem	TRACE	{"fs":"HTTPFileSystem","path":"https://github.com/duckdb/duckdb/raw/main/data/csv/customer.csv","op":"CLOSE"}
+CONNECTION	FileSystem	TRACE	{"fs":"HTTPFileSystem","path":"{DATA_DIR}/customer.csv","op":"OPEN"}
+CONNECTION	FileSystem	TRACE	{"fs":"HTTPFileSystem","path":"{DATA_DIR}/customer.csv","op":"READ","bytes":"1276","pos":"0"}
+CONNECTION	FileSystem	TRACE	{"fs":"HTTPFileSystem","path":"{DATA_DIR}/customer.csv","op":"CLOSE"}

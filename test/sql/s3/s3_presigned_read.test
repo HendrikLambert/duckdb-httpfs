@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/s3_presigned_read.test
+# name: test/sql/s3/s3_presigned_read.test
 # description: Read small csv/parquet files from S3 Presigned URL.
 # group: [s3]
 
@@ -7,8 +7,6 @@ require parquet
 require httpfs
 
 require-env S3_TEST_SERVER_AVAILABLE 1
-
-# Require that these environment variables are also set
 
 require-env AWS_DEFAULT_REGION
 

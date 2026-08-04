@@ -1,5 +1,5 @@
-# name: test/sql/todo/httpfs/hffs.test
-# description: Ensure the HuggingFace filesystem works as expected
+# name: test/sql/local/httpfs/hffs.test
+# description: Reject malformed Hugging Face filesystem URLs before network access
 # group: [httpfs]
 
 require parquet

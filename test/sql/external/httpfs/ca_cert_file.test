@@ -1,4 +1,4 @@
-# name: test/sql/todo/httpfs/ca_cert_file.test
+# name: test/sql/external/httpfs/ca_cert_file.test
 # description: Test that invalid ca_cert_file causes SSL connection to fail
 # group: [httpfs]
 

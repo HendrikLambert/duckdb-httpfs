@@ -1,5 +1,5 @@
-# name: test/sql/todo/copy/s3/http_log.test
-# description: Test http logger
+# name: test/sql/s3/http_log.test
+# description: S3 reads expose HEAD and GET requests through HTTP logging
 # group: [s3]
 
 require parquet
@@ -23,7 +23,7 @@ set ignore_error_messages
 
 # Create some test data
 statement ok
-COPY (SELECT 'value-1' as value) TO 's3://test-bucket/http_log/test.parquet';
+COPY (SELECT 'value-1' as value) TO '{TEMP_DIR}/http_log/test.parquet';
 
 statement ok
 CALL enable_logging('HTTP')
@@ -32,7 +32,7 @@ statement ok
 set logging_level='debug'
 
 query I
-FROM 's3://test-bucket/http_log/test.parquet'
+FROM '{TEMP_DIR}/http_log/test.parquet'
 ----
 value-1
 

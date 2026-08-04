@@ -1,5 +1,5 @@
-# name: test/sql/todo/settings/test_disabled_file_system_httpfs.test
-# description: Test disabled file systems with HTTPFS
+# name: test/sql/http/settings/test_disabled_file_system_httpfs.test
+# description: Disabling local files does not disable HTTP, but disabling HTTPFileSystem does
 # group: [settings]
 
 require skip_reload
@@ -14,17 +14,17 @@ require httpfs
 statement ok
 SET disabled_filesystems='LocalFileSystem';
 
-# httpfs works
-statement maybe
-from read_csv_auto('https://github.com/duckdb/duckdb/raw/main/data/csv/customer.csv');
+# HTTP remains available when only local files are disabled.
+query I
+SELECT count(*) FROM read_csv_auto('{DATA_DIR}/customer.csv');
 ----
-Invalid Configuration Error
+10
 
 statement ok
 SET disabled_filesystems='LocalFileSystem,HTTPFileSystem';
 
-# not if we disable it
+# HTTP reads fail after HTTPFileSystem is also disabled.
 statement error
-from read_csv_auto('https://github.com/duckdb/duckdb/raw/main/data/csv/customer.csv');
+FROM read_csv_auto('{DATA_DIR}/customer.csv');
 ----
 File system HTTPFileSystem has been disabled by configuration
