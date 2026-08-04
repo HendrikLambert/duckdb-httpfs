@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/download_config.test
+# name: test/sql/s3_public/download_config.test
 # description: Test S3 configuration
 # group: [s3]
 
@@ -56,11 +56,11 @@ statement ok
 SET s3_url_style='{url_style}';
 
 statement ok
-COPY test TO 's3://test-bucket-public/root-dir/test_{url_style}_url_style.parquet';
+COPY test TO '{TEMP_DIR}/download-config/test_{url_style}_url_style.parquet';
 
 # vhost style access
 query I
-SELECT i FROM "http://test-bucket-public.{DUCKDB_S3_ENDPOINT}/root-dir/test_{url_style}_url_style.parquet" LIMIT 3
+SELECT i FROM read_parquet(replace('{TEMP_DIR}/download-config/test_{url_style}_url_style.parquet', 's3://test-bucket-public/', 'http://test-bucket-public.{DUCKDB_S3_ENDPOINT}/')) LIMIT 3
 ----
 0
 1
@@ -68,7 +68,7 @@ SELECT i FROM "http://test-bucket-public.{DUCKDB_S3_ENDPOINT}/root-dir/test_{url
 
 # path style access
 query I
-SELECT i FROM "http://{DUCKDB_S3_ENDPOINT}/test-bucket-public/root-dir/test_{url_style}_url_style.parquet" LIMIT 3
+SELECT i FROM read_parquet(replace('{TEMP_DIR}/download-config/test_{url_style}_url_style.parquet', 's3://test-bucket-public/', 'http://{DUCKDB_S3_ENDPOINT}/test-bucket-public/')) LIMIT 3
 ----
 0
 1
@@ -79,7 +79,7 @@ statement ok
 SET s3_secret_access_key='';SET s3_access_key_id='';
 
 query I
-SELECT i FROM "s3://test-bucket-public/root-dir/test_{url_style}_url_style.parquet" LIMIT 3
+SELECT i FROM read_parquet('{TEMP_DIR}/download-config/test_{url_style}_url_style.parquet') LIMIT 3
 ----
 0
 1
@@ -92,10 +92,10 @@ statement ok
 SET s3_secret_access_key='{AWS_SECRET_ACCESS_KEY}';SET s3_access_key_id='{AWS_ACCESS_KEY_ID}';SET s3_region='{AWS_DEFAULT_REGION}'; SET s3_endpoint='{DUCKDB_S3_ENDPOINT}'; SET s3_use_ssl={DUCKDB_S3_USE_SSL};
 
 statement ok
-COPY test TO 's3://test-bucket-public/root-dir/test_default_url_style.parquet';
+COPY test TO '{TEMP_DIR}/download-config/test_default_url_style.parquet';
 
 query I
-SELECT i FROM "http://test-bucket-public.{DUCKDB_S3_ENDPOINT}/root-dir/test_default_url_style.parquet" LIMIT 3
+SELECT i FROM read_parquet(replace('{TEMP_DIR}/download-config/test_default_url_style.parquet', 's3://test-bucket-public/', 'http://test-bucket-public.{DUCKDB_S3_ENDPOINT}/')) LIMIT 3
 ----
 0
 1
@@ -106,12 +106,12 @@ statement ok
 SET s3_url_style='handwritten';
 
 statement error
-COPY test TO 's3://test-bucket-public/root-dir/test2.parquet';
+COPY test TO '{TEMP_DIR}/download-config/test2.parquet';
 ----
 
 # 404
 statement error
-SELECT i FROM "http://test-bucket-public.{DUCKDB_S3_ENDPOINT}/root-dir/non-existent-file-ljaslkjdas.parquet" LIMIT 3
+SELECT i FROM read_parquet(replace('{TEMP_DIR}/download-config/non-existent-file-ljaslkjdas.parquet', 's3://test-bucket-public/', 'http://test-bucket-public.{DUCKDB_S3_ENDPOINT}/')) LIMIT 3
 ----
 404 Not Found
 

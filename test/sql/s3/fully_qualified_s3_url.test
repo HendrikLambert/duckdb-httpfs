@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/fully_qualified_s3_url.test
+# name: test/sql/s3/fully_qualified_s3_url.test
 # description: Test S3, credentials override with query parameters
 # group: [s3]
 
@@ -34,16 +34,16 @@ statement ok
 SET s3_url_style='path';
 
 statement error
-COPY test TO 's3://test-bucket/s3_query_params/test.csv';
+COPY test TO '{TEMP_DIR}/s3_query_params/test.csv';
 ----
 Unable to connect to URL
 
 #test with .csv file
 statement ok
-COPY test TO 's3://test-bucket/s3_query_params/test.csv?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}';
+COPY test TO '{TEMP_DIR}/s3_query_params/test.csv?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}';
 
 query I
-SELECT i FROM "s3://test-bucket/s3_query_params/test.csv?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.csv?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" LIMIT 3
 ----
 0
 1
@@ -51,10 +51,10 @@ SELECT i FROM "s3://test-bucket/s3_query_params/test.csv?s3_access_key_id={AWS_A
 
 #test with .parquet file
 statement ok
-COPY test TO 's3://test-bucket/s3_query_params/test.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}' (FORMAT 'parquet');
+COPY test TO '{TEMP_DIR}/s3_query_params/test.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}' (FORMAT 'parquet');
 
 query I
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" LIMIT 3
 ----
 0
 1
@@ -62,7 +62,7 @@ SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_access_key_id={A
 
 #test GLOB with .parquet file
 query I
-SELECT i FROM "s3://test-bucket/s3_query_params/*.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/*.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" LIMIT 3
 ----
 0
 1
@@ -84,10 +84,10 @@ statement ok
 CREATE TABLE test_2 as SELECT * FROM range(100,110) tbl(j);
 
 statement ok
-COPY test_2 TO 's3://test-bucket/s3_query_params/test_2.csv?s3_access_key_id=minio_duckdb_user_2&s3_secret_access_key=minio_duckdb_user_2_password' ;
+COPY test_2 TO '{TEMP_DIR}/s3_query_params/test_2.csv?s3_access_key_id=minio_duckdb_user_2&s3_secret_access_key=minio_duckdb_user_2_password' ;
 
 query I
-SELECT j FROM "s3://test-bucket/s3_query_params/test_2.csv?s3_access_key_id=minio_duckdb_user_2&s3_secret_access_key=minio_duckdb_user_2_password" LIMIT 3
+SELECT j FROM "{TEMP_DIR}/s3_query_params/test_2.csv?s3_access_key_id=minio_duckdb_user_2&s3_secret_access_key=minio_duckdb_user_2_password" LIMIT 3
 ----
 100
 101
@@ -95,8 +95,8 @@ SELECT j FROM "s3://test-bucket/s3_query_params/test_2.csv?s3_access_key_id=mini
 
 #test a joining of two tables with different credentials
 query II
-SELECT T1.i, T2.j FROM "s3://test-bucket/s3_query_params/test.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" T1
-    INNER JOIN "s3://test-bucket/s3_query_params/test_2.csv?s3_access_key_id=minio_duckdb_user_2&s3_secret_access_key=minio_duckdb_user_2_password" T2 
+SELECT T1.i, T2.j FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" T1
+    INNER JOIN "{TEMP_DIR}/s3_query_params/test_2.csv?s3_access_key_id=minio_duckdb_user_2&s3_secret_access_key=minio_duckdb_user_2_password" T2
     ON T1.i+100=T2.j LIMIT 3;
 ----
 0	100
@@ -111,7 +111,7 @@ statement ok
 SET s3_region='false_region';
 
 statement ok
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_region={AWS_DEFAULT_REGION}" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_region={AWS_DEFAULT_REGION}" LIMIT 3
 
 statement ok
 SET s3_region='{AWS_DEFAULT_REGION}';
@@ -121,7 +121,7 @@ statement ok
 SET s3_endpoint='false_endpoint';
 
 statement ok
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_endpoint={DUCKDB_S3_ENDPOINT}" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_endpoint={DUCKDB_S3_ENDPOINT}" LIMIT 3
 
 statement ok
 SET s3_endpoint='{DUCKDB_S3_ENDPOINT}';
@@ -131,7 +131,7 @@ statement ok
 SET s3_secret_access_key='false_acces_key';
 
 statement ok
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_secret_access_key={AWS_SECRET_ACCESS_KEY}" LIMIT 3
 
 statement ok
 SET s3_secret_access_key='{AWS_SECRET_ACCESS_KEY}';
@@ -141,25 +141,25 @@ statement ok
 SET s3_access_key_id='false_acces_key_id';
 
 statement ok
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_access_key_id={AWS_ACCESS_KEY_ID}" LIMIT 3
 
 statement ok
 SET s3_access_key_id='{AWS_ACCESS_KEY_ID}';
 
 #test use_ssl
 statement ok
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_use_ssl=false" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_use_ssl=false" LIMIT 3
 
 statement error
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_use_ssl=bla" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_use_ssl=bla" LIMIT 3
 ----
 
 #test url_style
 statement ok
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_url_style=vhost" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_url_style=vhost" LIMIT 3
 
 statement ok
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_url_style=virtual" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_url_style=virtual" LIMIT 3
 
 statement ok
 SET s3_url_style='path';
@@ -169,23 +169,23 @@ statement ok
 SET s3_access_key_id='false_id'; SET s3_region='false_region';
 
 statement ok
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_region={AWS_DEFAULT_REGION}&s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_endpoint={DUCKDB_S3_ENDPOINT}" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_region={AWS_DEFAULT_REGION}&s3_access_key_id={AWS_ACCESS_KEY_ID}&s3_endpoint={DUCKDB_S3_ENDPOINT}" LIMIT 3
 
 statement ok
 SET s3_access_key_id='{AWS_ACCESS_KEY_ID}'; SET s3_region='{AWS_DEFAULT_REGION}';
 
 # test faulty input
 statement error
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_region={AWS_DEFAULT_REGION}&s3_access_key_id=incorrect_key_id" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_region={AWS_DEFAULT_REGION}&s3_access_key_id=incorrect_key_id" LIMIT 3
 ----
 
 statement error
-SELECT i FROM "s3://test-bucket/s3_query_params/test.parquet?s3_region={AWS_DEFAULT_REGION}&bla=bla" LIMIT 3
+SELECT i FROM "{TEMP_DIR}/s3_query_params/test.parquet?s3_region={AWS_DEFAULT_REGION}&bla=bla" LIMIT 3
 ----
 
 # test endpoint valid path
 statement ok
-SET s3_endpoint='{DUCKDB_S3_ENDPOINT}/test-bucket'; SET s3_url_style='path';
+SET s3_endpoint=replace('{TEMP_DIR}', 's3://test-bucket', '{DUCKDB_S3_ENDPOINT}/test-bucket'); SET s3_url_style='path';
 
 statement ok
 SELECT i FROM "s3://s3_query_params/test.parquet" LIMIT 3

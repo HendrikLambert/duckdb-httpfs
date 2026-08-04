@@ -116,6 +116,7 @@ def httpfs_minio_populate(block, config):
     block["httpfs_env"] = {
         "S3_DATA_DIR": str(data_dir),
         "S3_TEMP_DIR_ROOT": str(temp_dir_root),
+        "S3_PUBLIC_TEMP_URI_ROOT": f"s3://{PUBLIC_BUCKET}/{block['temp_prefix']}",
         "S3_ATTACH_DB": f"s3://{block['bucket']}/{object_path(_ATTACH_DB)}",
         "S3_ATTACH_DB_PRESIGNED_URL": minio_presigned_url(block, object_path(_ATTACH_DB)),
         "S3_SMALL_CSV_PRESIGNED_URL": minio_presigned_url(block, object_path(_SMALL_CSV)),
