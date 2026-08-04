@@ -1,4 +1,4 @@
-# name: test/sql/todo/test_read_public_bucket.test
+# name: test/sql/external/s3/test_read_public_bucket.test
 # description: test aws extension with different chain configs
 # group: [sql]
 

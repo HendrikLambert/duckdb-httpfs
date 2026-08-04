@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/parquet/test_parquet_force_download_threshold.test
+# name: test/sql/external/s3/test_parquet_force_download_threshold.test
 # description: Test Force download
 # group: [parquet]
 
