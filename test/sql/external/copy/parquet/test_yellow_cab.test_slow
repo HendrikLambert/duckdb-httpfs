@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/parquet/test_yellow_cab.test_slow
+# name: test/sql/external/copy/parquet/test_yellow_cab.test_slow
 # description: Test yellow cab parquet file
 # group: [parquet]
 
