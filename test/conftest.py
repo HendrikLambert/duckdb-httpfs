@@ -1,6 +1,8 @@
 from ducktest import env_ref, register_suite
+from ducktest.resources.ca import CA_SERVICE
 from httpfs_ducktest.httpfs_http import HTTPFS_HTTP_SERVICE
 from httpfs_ducktest.httpfs_minio import HTTPFS_MINIO_SERVICE
+from httpfs_ducktest.httpfs_mitm import HTTPFS_MITM_SERVICE
 
 HTTP_CELL = {
     "id": "http",
@@ -35,7 +37,6 @@ S3_PUBLIC_CELL = {
     },
 }
 
-
 def pytest_configure(config):
     config.addinivalue_line("markers", "todo: HTTPFS tests not yet migrated to a ducktest suite.")
     config.addinivalue_line("markers", "local: service-free HTTPFS tests.")
@@ -43,6 +44,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "s3: S3-specific tests backed by managed MinIO.")
     config.addinivalue_line("markers", "s3_public: public-bucket S3 tests backed by managed MinIO.")
     config.addinivalue_line("markers", "remote: backend-neutral tests run against HTTP and S3.")
+    config.addinivalue_line("markers", "proxy: HTTP proxy behavior backed by managed mitmproxy and MinIO.")
     config.addinivalue_line("markers", "external: tests against real public HTTP providers.")
 
     register_suite(config, "todo", path="test/sql/todo", default=False)
@@ -74,5 +76,12 @@ def pytest_configure(config):
         path="test/sql/remote",
         services=[HTTPFS_HTTP_SERVICE, HTTPFS_MINIO_SERVICE],
         matrix=[HTTP_CELL, S3_CELL],
+    )
+    register_suite(
+        config,
+        "proxy",
+        path="test/sql/proxy",
+        services=[CA_SERVICE, HTTPFS_MINIO_SERVICE, HTTPFS_MITM_SERVICE],
+        matrix=[S3_CELL],
     )
     register_suite(config, "external", path="test/sql/external", default=False)

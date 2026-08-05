@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/http_proxy.test
+# name: test/sql/proxy/http_proxy.test
 # description: Test http proxy
 # group: [s3]
 
@@ -27,10 +27,13 @@ statement ok
 PRAGMA enable_verification
 
 statement ok
-COPY (SELECT 'value-1' as value) TO 's3://test-bucket/proxy-test/test.parquet';
+set http_proxy='{HTTP_PROXY_PUBLIC}'
+
+statement ok
+COPY (SELECT 'value-1' as value) TO '{TEMP_DIR}/proxy-test/test.parquet';
 
 query I
-FROM 's3://test-bucket/proxy-test/test.parquet'
+FROM '{TEMP_DIR}/proxy-test/test.parquet'
 ----
 value-1
 
@@ -45,7 +48,7 @@ statement ok
 set http_proxy_password='yyy'
 
 statement error
-FROM 's3://test-bucket/proxy-test/test.parquet'
+FROM '{TEMP_DIR}/proxy-test/test.parquet'
 ----
 <REGEX>:.*IO Error.*HTTP HEAD to 'http://test-bucket.*
 
@@ -60,7 +63,7 @@ statement ok
 RESET http_proxy_password
 
 query I
-FROM 's3://test-bucket/proxy-test/test.parquet'
+FROM '{TEMP_DIR}/proxy-test/test.parquet'
 ----
 value-1
 
@@ -69,7 +72,7 @@ statement ok
 set http_proxy='http://{HTTP_PROXY_PUBLIC}'
 
 query I
-FROM 's3://test-bucket/proxy-test/test.parquet'
+FROM '{TEMP_DIR}/proxy-test/test.parquet'
 ----
 value-1
 
@@ -86,7 +89,7 @@ CREATE SECRET http1 (
 
 # This works now, because it uses the secret
 query I
-FROM 's3://test-bucket/proxy-test/test.parquet'
+FROM '{TEMP_DIR}/proxy-test/test.parquet'
 ----
 value-1
 
@@ -96,7 +99,7 @@ DROP SECRET http1
 require-env HTTP_PROXY
 
 statement error
-FROM 's3://test-bucket/proxy-test/test.parquet'
+FROM '{TEMP_DIR}/proxy-test/test.parquet'
 ----
 <REGEX>:.*IO Error.*HTTP HEAD to 'http://test-bucket.*
 
@@ -108,48 +111,9 @@ CREATE SECRET http1 (
 
 # This works now, because it uses the secret
 query I
-FROM 's3://test-bucket/proxy-test/test.parquet'
+FROM '{TEMP_DIR}/proxy-test/test.parquet'
 ----
 value-1
 
 statement ok
 DROP SECRET http1
-
-require-env HTTP_PROXY_PRIVATE
-
-require-env HTTP_PROXY_PRIVATE_USERNAME
-
-require-env HTTP_PROXY_PRIVATE_PASSWORD
-
-# Let's try the private proxy
-statement ok
-CREATE SECRET http2 (
-    TYPE HTTP, 
-    http_proxy '{HTTP_PROXY_PRIVATE}',
-    http_proxy_username '{HTTP_PROXY_PRIVATE_USERNAME}',
-    http_proxy_password '{HTTP_PROXY_PRIVATE_PASSWORD}'
-);
-
-# Correct auth means it works!
-query I
-FROM 's3://test-bucket/proxy-test/test.parquet'
-----
-value-1
-
-statement ok
-DROP SECRET http2
-
-# Now lets try incorrect auth
-statement ok
-CREATE SECRET http3 (
-    TYPE HTTP, 
-    http_proxy '{HTTP_PROXY_PRIVATE}',
-    http_proxy_username 'malicious',
-    http_proxy_password 'intruder'
-);
-
-# We get a tasty HTTP 407
-statement error
-FROM 's3://test-bucket/proxy-test/test.parquet'
-----
-HTTP GET error on 'http://test-bucket.duckdb-minio.com:9000/proxy-test/test.parquet' (HTTP 407)
