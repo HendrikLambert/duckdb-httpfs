@@ -1,4 +1,4 @@
-# name: test/sql/todo/json/table/internal_issue_6807.test_slow
+# name: test/sql/external/json/internal_issue_6807.test_slow
 # description: Test logarithmic growth of read buffer for sequential reads
 # group: [table]
 
