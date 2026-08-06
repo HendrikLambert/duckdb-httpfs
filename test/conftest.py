@@ -59,14 +59,14 @@ def pytest_configure(config):
     register_suite(
         config,
         "s3",
-        path="test/sql/s3",
+        path="test/sql/s3/authenticated",
         services=[HTTPFS_MINIO_SERVICE],
         matrix=[S3_CELL],
     )
     register_suite(
         config,
         "s3_public",
-        path="test/sql/s3_public",
+        path="test/sql/s3/public",
         services=[HTTPFS_MINIO_SERVICE],
         matrix=[S3_PUBLIC_CELL],
     )
