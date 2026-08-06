@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/upload_file_parallel.test_slow
+# name: test/sql/s3/authenticated/upload_file_parallel.test_slow
 # description: Copy large parquet files from and to S3 in parallel.
 # group: [s3]
 
@@ -57,13 +57,13 @@ SET s3_endpoint='{DUCKDB_S3_ENDPOINT}';SET s3_use_ssl={DUCKDB_S3_USE_SSL};
 
 # Parquet file
 statement ok
-COPY lineitem TO 's3://test-bucket/multipart/export_large_{threadid}.parquet' (FORMAT 'parquet');
+COPY lineitem TO '{TEMP_DIR}/multipart/export_large_{threadid}.parquet' (FORMAT 'parquet');
 
 query I
 SELECT
     sum(l_extendedprice * l_discount) AS revenue
 FROM
-    "s3://test-bucket/multipart/export_large_{threadid}.parquet"
+    "{TEMP_DIR}/multipart/export_large_{threadid}.parquet"
 WHERE
     l_shipdate >= CAST('1994-01-01' AS date)
     AND l_shipdate < CAST('1995-01-01' AS date)
@@ -100,13 +100,13 @@ SET s3_secret_access_key='{AWS_SECRET_ACCESS_KEY}';SET s3_access_key_id='{AWS_AC
 
 # Parquet file
 statement ok
-COPY lineitem_small TO 's3://test-bucket/multipart/export_small_{threadid}.parquet' (FORMAT 'parquet');
+COPY lineitem_small TO '{TEMP_DIR}/multipart/export_small_{threadid}.parquet' (FORMAT 'parquet');
 
 query I
 SELECT
     sum(l_extendedprice * l_discount) AS revenue
 FROM
-    "s3://test-bucket/multipart/export_small_{threadid}.parquet"
+    "{TEMP_DIR}/multipart/export_small_{threadid}.parquet"
 WHERE
     l_shipdate >= CAST('1994-01-01' AS date)
     AND l_shipdate < CAST('1995-01-01' AS date)
