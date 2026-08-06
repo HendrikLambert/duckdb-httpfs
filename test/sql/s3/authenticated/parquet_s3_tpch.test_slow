@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/parquet_s3_tpch.test_slow
+# name: test/sql/s3/authenticated/parquet_s3_tpch.test_slow
 # description: Test all tpch queries on tpch sf0.01 over s3
 # group: [s3]
 
@@ -41,14 +41,14 @@ CALL DBGEN(sf=0.01);
 
 # copy tpch files to S3
 statement ok
-COPY lineitem to 's3://test-bucket/tpch-sf0_01/lineitem.parquet';
-COPY nation to 's3://test-bucket/tpch-sf0_01/nation.parquet';
-COPY region to 's3://test-bucket/tpch-sf0_01/region.parquet';
-COPY part to 's3://test-bucket/tpch-sf0_01/part.parquet';
-COPY supplier to 's3://test-bucket/tpch-sf0_01/supplier.parquet';
-COPY partsupp to 's3://test-bucket/tpch-sf0_01/partsupp.parquet';
-COPY customer to 's3://test-bucket/tpch-sf0_01/customer.parquet';
-COPY orders to 's3://test-bucket/tpch-sf0_01/orders.parquet';
+COPY lineitem to '{TEMP_DIR}/tpch-sf0_01/lineitem.parquet';
+COPY nation to '{TEMP_DIR}/tpch-sf0_01/nation.parquet';
+COPY region to '{TEMP_DIR}/tpch-sf0_01/region.parquet';
+COPY part to '{TEMP_DIR}/tpch-sf0_01/part.parquet';
+COPY supplier to '{TEMP_DIR}/tpch-sf0_01/supplier.parquet';
+COPY partsupp to '{TEMP_DIR}/tpch-sf0_01/partsupp.parquet';
+COPY customer to '{TEMP_DIR}/tpch-sf0_01/customer.parquet';
+COPY orders to '{TEMP_DIR}/tpch-sf0_01/orders.parquet';
 
 # clears tables
 statement ok
@@ -62,14 +62,14 @@ DROP TABLE customer;
 DROP TABLE orders;
 
 statement ok
-CREATE VIEW lineitem as SELECT * FROM 's3://test-bucket/tpch-sf0_01/lineitem.parquet';
-CREATE VIEW nation as SELECT * FROM 's3://test-bucket/tpch-sf0_01/nation.parquet';
-CREATE VIEW region as SELECT * FROM 's3://test-bucket/tpch-sf0_01/region.parquet';
-CREATE VIEW part as SELECT * FROM 's3://test-bucket/tpch-sf0_01/part.parquet';
-CREATE VIEW supplier as SELECT * FROM 's3://test-bucket/tpch-sf0_01/supplier.parquet';
-CREATE VIEW partsupp as SELECT * FROM 's3://test-bucket/tpch-sf0_01/partsupp.parquet';
-CREATE VIEW customer as SELECT * FROM 's3://test-bucket/tpch-sf0_01/customer.parquet';
-CREATE VIEW orders as SELECT * FROM 's3://test-bucket/tpch-sf0_01/orders.parquet';
+CREATE VIEW lineitem as SELECT * FROM '{TEMP_DIR}/tpch-sf0_01/lineitem.parquet';
+CREATE VIEW nation as SELECT * FROM '{TEMP_DIR}/tpch-sf0_01/nation.parquet';
+CREATE VIEW region as SELECT * FROM '{TEMP_DIR}/tpch-sf0_01/region.parquet';
+CREATE VIEW part as SELECT * FROM '{TEMP_DIR}/tpch-sf0_01/part.parquet';
+CREATE VIEW supplier as SELECT * FROM '{TEMP_DIR}/tpch-sf0_01/supplier.parquet';
+CREATE VIEW partsupp as SELECT * FROM '{TEMP_DIR}/tpch-sf0_01/partsupp.parquet';
+CREATE VIEW customer as SELECT * FROM '{TEMP_DIR}/tpch-sf0_01/customer.parquet';
+CREATE VIEW orders as SELECT * FROM '{TEMP_DIR}/tpch-sf0_01/orders.parquet';
 
 
 # Run TPCH SF1

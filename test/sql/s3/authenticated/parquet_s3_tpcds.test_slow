@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/parquet_s3_tpcds.test_slow
+# name: test/sql/s3/authenticated/parquet_s3_tpcds.test_slow
 # description: Test all tpcds queries on tpch sf0.01 over s3
 # group: [s3]
 
@@ -49,10 +49,10 @@ CALL dsdgen(sf=0.01, schema='tpcds');
 foreach tbl call_center catalog_page catalog_returns catalog_sales customer customer_demographics customer_address date_dim household_demographics inventory income_band item promotion reason ship_mode store store_returns store_sales time_dim warehouse web_page web_returns web_sales web_site
 
 statement ok
-COPY tpcds.{tbl} TO 's3://test-bucket/tpcds-sf0_01/{tbl}.parquet' (FORMAT 'PARQUET', COMPRESSION 'ZSTD');
+COPY tpcds.{tbl} TO '{TEMP_DIR}/tpcds-sf0_01/{tbl}.parquet' (FORMAT 'PARQUET', COMPRESSION 'ZSTD');
 
 statement ok
-CREATE VIEW {tbl} AS SELECT * FROM parquet_scan('s3://test-bucket/tpcds-sf0_01/{tbl}.parquet');
+CREATE VIEW {tbl} AS SELECT * FROM parquet_scan('{TEMP_DIR}/tpcds-sf0_01/{tbl}.parquet');
 
 endloop
 
