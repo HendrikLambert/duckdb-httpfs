@@ -38,4 +38,5 @@ else
   echo $S3_ATTACH_DB_PRESIGNED_URL
 
   export S3_ATTACH_DB="s3://test-bucket/presigned/attach.db"
+  export S3_LINEITEM_SF1_DB="s3://test-bucket/presigned/lineitem_sf1.db"
 fi

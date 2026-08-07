@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/s3_presigned_read.test_slow
+# name: test/sql/s3/authenticated/s3_presigned_read_large.test_slow
 # description: Read large csv/parquet files from S3 Presigned URL.
 # group: [s3]
 

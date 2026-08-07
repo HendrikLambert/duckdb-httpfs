@@ -3,6 +3,7 @@ from ducktest.resources.ca import CA_SERVICE
 from httpfs_ducktest.httpfs_http import HTTPFS_HTTP_SERVICE
 from httpfs_ducktest.httpfs_minio import HTTPFS_MINIO_SERVICE
 from httpfs_ducktest.httpfs_mitm import HTTPFS_MITM_SERVICE
+from httpfs_ducktest.s3_data import S3DataProvisioner
 
 HTTP_CELL = {
     "id": "http",
@@ -61,6 +62,7 @@ def pytest_configure(config):
         "s3",
         path="test/sql/s3/authenticated",
         services=[HTTPFS_MINIO_SERVICE],
+        provisioner=S3DataProvisioner(config),
         matrix=[S3_CELL],
     )
     register_suite(
