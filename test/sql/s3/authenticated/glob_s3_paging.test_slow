@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/glob_s3_paging.test_slow
+# name: test/sql/s3/authenticated/glob_s3_paging.test_slow
 # description: Test globbing of a large number of parquet files to test the paging mechanism
 # group: [s3]
 
@@ -51,7 +51,7 @@ foreach k 0 1 2 3 4 5 6 7 8 9
 foreach l 0 1 2 3 4 5 6 7 8 9
 
 statement ok
-COPY (select ({i}{j}{k}{l})::INT as column0) to 's3://test-bucket/parquet_glob_s3_paging/paging/t{i}{j}{k}{l}-{urlstyle}-urls.{format}';
+COPY (select ({i}{j}{k}{l})::INT as column0) to '{TEMP_DIR}/parquet_glob_s3_paging/paging/t{i}{j}{k}{l}-{urlstyle}-urls.{format}';
 
 endloop
 
@@ -63,7 +63,7 @@ endloop
 
 # Begin tests
 query I
-select sum(column0) from 's3://test-bucket/parquet_glob_s3_paging/paging/t*-{urlstyle}-urls.{format}'
+select sum(column0) from '{TEMP_DIR}/parquet_glob_s3_paging/paging/t*-{urlstyle}-urls.{format}'
 ----
 1999000
 
@@ -83,7 +83,7 @@ loop i 0 2
 
 # Begin tests
 query I
-select sum(column0) from 's3://test-bucket/parquet_glob_s3_paging/paging/t*-{urlstyle}-urls.{format}'
+select sum(column0) from '{TEMP_DIR}/parquet_glob_s3_paging/paging/t*-{urlstyle}-urls.{format}'
 ----
 1999000
 
@@ -102,12 +102,12 @@ statement ok
 SET s3_allow_recursive_globbing = {s3_allow_recursive_globs}
 
 query I
-SELECT count(*) FROM glob('s3://test-bucket/parquet_glob*/some-non-existent-folder/*');
+SELECT count(*) FROM glob('{TEMP_DIR}/parquet_glob*/some-non-existent-folder/*');
 ----
 0
 
 query I
-SELECT count(*) FROM glob('s3://test-bucket/parquet_glob*/paging/*');
+SELECT count(*) FROM glob('{TEMP_DIR}/parquet_glob*/paging/*');
 ----
 8000
 

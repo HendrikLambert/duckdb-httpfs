@@ -1,4 +1,4 @@
-# name: test/sql/todo/copy/s3/glob_s3_recursive.test_slow
+# name: test/sql/external/s3/glob_s3_recursive.test_slow
 # description: Test globbing of a large number of parquet files to test the paging mechanism
 # group: [s3]
 

@@ -1,4 +1,4 @@
-# name: test/sql/todo/s3/incorrect_s3_region_force_download.test_slow
+# name: test/sql/external/s3/incorrect_s3_region_force_download.test_slow
 # description: Test force_download when the incorrect S3 region is specified
 # group: [s3]
 

@@ -1,4 +1,4 @@
-# name: test/sql/todo/storage/encryption/temp_files/encrypted_out_of_core.test_slow
+# name: test/sql/local/encryption/encrypted_out_of_core.test_slow
 # description: Encrypted large joins in persistent databases have a leftover temporary directory.
 # group: [temp_files]
 
